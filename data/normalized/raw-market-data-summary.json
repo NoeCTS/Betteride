@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-03-11T14:51:13Z",
+  "datasets": [
+    {
+      "id": "berlin-bike-counters",
+      "label": "Berlin bike counters",
+      "status": "ready",
+      "countLabel": "35 locations / 122,735 hourly rows",
+      "detail": "Official workbook converted from 2012 to 2024."
+    },
+    {
+      "id": "berlin-bike-repair-shops",
+      "label": "Berlin bike repair shops",
+      "status": "ready",
+      "countLabel": "398 shops",
+      "detail": "Geofabrik Berlin GPKG filtered on the bicycle shop class and normalized into CSV and GeoJSON for supply mapping."
+    },
+    {
+      "id": "vbb-station-access",
+      "label": "VBB station access points",
+      "status": "ready",
+      "countLabel": "53,820 access points",
+      "detail": "Official UMBW export normalized from semicolon-delimited legacy CSV into UTF-8 CSV and GeoJSON."
+    },
+    {
+      "id": "vbb-gtfs-stops",
+      "label": "VBB GTFS stops",
+      "status": "ready",
+      "countLabel": "41,958 stops",
+      "detail": "Weekly GTFS static stops exported to CSV and GeoJSON for stop/station joins."
+    },
+    {
+      "id": "google-places",
+      "label": "Google Places ratings",
+      "status": "placeholder",
+      "countLabel": "header-only CSV",
+      "detail": "API key and billing are still required before ratings and review counts can be fetched."
+    },
+    {
+      "id": "yelp-ratings",
+      "label": "Yelp ratings",
+      "status": "placeholder",
+      "countLabel": "header-only CSV",
+      "detail": "Developer credentials are still required before Yelp review metadata can be fetched."
+    },
+    {
+      "id": "station-footfall",
+      "label": "Station footfall",
+      "status": "placeholder",
+      "countLabel": "placeholder CSV",
+      "detail": "No verified public bulk passenger-count file is staged yet; corridor strength still needs a proxy or licensed feed."
+    }
+  ],
+  "files": [
+    "data/raw/berlin_bike_counters_raw.xlsx",
+    "data/raw/berlin_bike_counters_hourly.csv",
+    "data/raw/berlin_bike_counters_locations.geojson",
+    "data/raw/berlin_osm_bicycle_shops_source.gpkg",
+    "data/raw/berlin_bike_repair_shops.geojson",
+    "data/raw/berlin_bike_repair_shops.csv",
+    "data/raw/vbb_station_access_source.zip",
+    "data/raw/vbb_station_access_points.geojson",
+    "data/raw/vbb_station_access_points.csv",
+    "data/raw/vbb_gtfs.zip",
+    "data/raw/vbb_stops.csv",
+    "data/raw/vbb_stops.geojson",
+    "data/raw/berlin_bike_shops_google_places.csv",
+    "data/raw/berlin_bike_shops_yelp.csv",
+    "data/raw/berlin_station_footfall.csv"
+  ],
+  "notes": [
+    "The dashboard map still uses lightweight seed layers for scoring and rendering stability.",
+    "Raw market files now live under data/raw and can be promoted into a heavier-weight scoring pipeline later.",
+    "Google Places, Yelp, and station footfall remain placeholders until credentials or a verified bulk source are available."
+  ]
+}

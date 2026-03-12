@@ -1,0 +1,83 @@
+[
+  {
+    "id": "berlin-bike-counters",
+    "name": "Berlin bike counters",
+    "provider": "SenMVKU / Berlin Open Data",
+    "refreshDate": "Coverage through 2024-12-31",
+    "confidence": "high",
+    "note": "Official Radzaehlstellen workbook downloaded into data/raw/berlin_bike_counters_raw.xlsx and converted into hourly CSV plus counter-location GeoJSON.",
+    "url": "https://daten.berlin.de/datensaetze/radzahldaten-in-berlin"
+  },
+  {
+    "id": "berlin-osm-bicycle-shops",
+    "name": "Berlin bicycle shops and repair supply",
+    "provider": "Geofabrik / OpenStreetMap",
+    "refreshDate": "2026-03-10 extract",
+    "confidence": "medium",
+    "note": "Berlin-wide Geofabrik GPKG is stored locally and filtered on the bicycle shop class into berlin_bike_repair_shops.csv and berlin_bike_repair_shops.geojson.",
+    "url": "https://download.geofabrik.de/europe/germany/berlin.html"
+  },
+  {
+    "id": "vbb-station-access",
+    "name": "VBB station access coordinates",
+    "provider": "VBB / Berlin Open Data",
+    "refreshDate": "2022-09-14 source file",
+    "confidence": "high",
+    "note": "Official UMBW station-access export is staged locally and normalized into UTF-8 CSV plus GeoJSON access points for corridor and station joins.",
+    "url": "https://daten.berlin.de/datensaetze/https-vbb-live-exozet-com-media-download-2035"
+  },
+  {
+    "id": "vbb-gtfs-static",
+    "name": "VBB GTFS static stops",
+    "provider": "VBB",
+    "refreshDate": "2026-03-11 weekly feed",
+    "confidence": "high",
+    "note": "Current GTFS static ZIP is stored under data/raw/vbb_gtfs.zip, with stops.txt exported as CSV and GeoJSON for stop and station coverage work.",
+    "url": "https://unternehmen.vbb.de/en/digital-services/datasets/"
+  },
+  {
+    "id": "google-places",
+    "name": "Google Places ratings and review counts",
+    "provider": "Google Maps Platform",
+    "refreshDate": "Awaiting API credentials",
+    "confidence": "low",
+    "note": "Only a header-only CSV placeholder is committed locally. A Places API key and billing setup are required before this enrichment can be populated.",
+    "url": "https://developers.google.com/maps/documentation/places/web-service/overview"
+  },
+  {
+    "id": "yelp-ratings",
+    "name": "Yelp ratings and review counts",
+    "provider": "Yelp Developers",
+    "refreshDate": "Awaiting API credentials",
+    "confidence": "low",
+    "note": "Only a header-only CSV placeholder is staged locally. Yelp developer credentials are required before review metadata can be fetched.",
+    "url": "https://docs.developer.yelp.com/docs/places-intro"
+  },
+  {
+    "id": "station-footfall",
+    "name": "Station footfall and entry-exit counts",
+    "provider": "VBB / BVG public datasets",
+    "refreshDate": "Not verified as of 2026-03-11",
+    "confidence": "low",
+    "note": "No verified public bulk passenger-count download is staged yet. The repo contains a placeholder CSV and the scoring model still relies on corridor and station proxies.",
+    "url": "https://unternehmen.vbb.de/der-vbb/zahlen-daten-fakten/vbb-kennzahlen/fahrgaeste/"
+  },
+  {
+    "id": "betteride-seed-layers",
+    "name": "Betteride prototype seed layers",
+    "provider": "Local prototype bundle",
+    "refreshDate": "2026-03-11",
+    "confidence": "medium",
+    "note": "The live dashboard still renders the lightweight berlin-layers.json seed bundle for map performance and scoring transparency while the heavier raw files remain staged in data/raw.",
+    "url": "https://betteride.example/internal"
+  },
+  {
+    "id": "betteride-partner-footprint",
+    "name": "Betteride partner operating footprint",
+    "provider": "Prototype internal marketplace layer",
+    "refreshDate": "2026-03-11",
+    "confidence": "low",
+    "note": "Partner shops, slot capacity, and same-day coverage are still mocked placeholders and should later be replaced with CRM and bookings data.",
+    "url": "https://betteride.example/internal"
+  }
+]

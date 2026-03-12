@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-03-11T14:51:18.816Z",
+  "zoneCount": 11,
+  "layerCounts": {
+    "bikeCounters": 8,
+    "bikeFlowSegments": 7,
+    "bikeInfrastructureSegments": 6,
+    "bikeStreetSegments": 4,
+    "transitStations": 10,
+    "bikeRideLocations": 8,
+    "partnerShops": 5,
+    "nonPartnerShops": 8,
+    "publicRepairStations": 6
+  },
+  "sourceIds": [
+    "berlin-bike-counters",
+    "berlin-osm-bicycle-shops",
+    "vbb-station-access",
+    "vbb-gtfs-static",
+    "google-places",
+    "yelp-ratings",
+    "station-footfall",
+    "betteride-seed-layers",
+    "betteride-partner-footprint"
+  ],
+  "bounds": {
+    "minLon": 13.304,
+    "minLat": 52.462,
+    "maxLon": 13.501,
+    "maxLat": 52.56
+  },
+  "notes": [
+    "This summary is derived from the local prototype seed layers.",
+    "Zone polygons are custom service catchments; they are not official LOR units.",
+    "Partner capacity fields remain mocked placeholders and should be replaced by Betteride ops data."
+  ]
+}

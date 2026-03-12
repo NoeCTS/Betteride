@@ -4,14 +4,22 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:reset": "bash scripts/start-local-dev.sh",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "data:refresh": "python3 scripts/refresh-berlin-market-data.py",
+    "partners:match": "node scripts/match-betteride-partners.mjs",
+    "seed:normalize": "node scripts/normalize-seed-data.mjs",
+    "build:data": "node scripts/build-app-data.mjs"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

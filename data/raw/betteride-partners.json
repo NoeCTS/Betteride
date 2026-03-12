@@ -1,0 +1,213 @@
+{
+  "generated_at": "2026-03-11T16:11:17.294Z",
+  "source_file": "data/raw/berlin_bike_repair_shops.csv",
+  "partners": [
+    {
+      "osm_id": "2414008084",
+      "name": "BikeHaus",
+      "slug": "bikehaus",
+      "osm_name": "bikehaus Berlin",
+      "lat": 52.5023291,
+      "lon": 13.4565809,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "10704889156",
+      "name": "WINGWHEELS Service Center",
+      "slug": "wingwheels-service-center",
+      "osm_name": "Wingwheels Service Center",
+      "lat": 52.5368535,
+      "lon": 13.375544,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "2860326046",
+      "name": "Schicke Scheesen",
+      "slug": "schicke-scheesen",
+      "osm_name": "Schicke Scheesen",
+      "lat": 52.5374954,
+      "lon": 13.3969099,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "3714117116",
+      "name": "Radsport Center Berlin",
+      "slug": "radsport-center-berlin",
+      "osm_name": "Radsportcenter Berlin",
+      "lat": 52.5087639,
+      "lon": 13.3077584,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "11030379590",
+      "name": "Pferd Rad",
+      "slug": "pferd-rad",
+      "osm_name": "Pferd Rad",
+      "lat": 52.5165012,
+      "lon": 13.3048031,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "1166389947",
+      "name": "Fahrradladen Wulf",
+      "slug": "fahrradladen-wulf",
+      "osm_name": "Wulf-Fahrräder A & V",
+      "lat": 52.5486978,
+      "lon": 13.4111095,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "2411370812",
+      "name": "Wulf Bikes",
+      "slug": "wulf-bikes",
+      "osm_name": "Wulf Bikes",
+      "lat": 52.5654986,
+      "lon": 13.4017031,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "3553888907",
+      "name": "Cycling Club Berlin",
+      "slug": "cycling-club-berlin",
+      "osm_name": "Cycling Club Berlin",
+      "lat": 52.5143886,
+      "lon": 13.30468,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "7877954902",
+      "name": "Grimm Bike Friedrichshain",
+      "slug": "grimm-bike-friedrichshain",
+      "osm_name": "Grimm Bike",
+      "lat": 52.5141971,
+      "lon": 13.4719063,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "8526205717",
+      "name": "Velobande Bikes & Coffee",
+      "slug": "velobande-bikes-coffee",
+      "osm_name": "Velobande Bikes and Coffee",
+      "lat": 52.5398252,
+      "lon": 13.4249595,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "4429217308",
+      "name": "Grimm Bike Moabit",
+      "slug": "grimm-bike-moabit",
+      "osm_name": "Grimm Bike",
+      "lat": 52.5319225,
+      "lon": 13.3420701,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "1805065784",
+      "name": "VELOBANDE Bikes & Ice Cream",
+      "slug": "velobande-bikes-ice-cream",
+      "osm_name": "Velobande Bikes & Icecream",
+      "lat": 52.5410773,
+      "lon": 13.4171718,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "12909716875",
+      "name": "Rad Vögel",
+      "slug": "rad-vogel",
+      "osm_name": "RadVögel",
+      "lat": 52.5330123,
+      "lon": 13.3505058,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "10046067248",
+      "name": "DNB: Daniel n Bikes",
+      "slug": "dnb-daniel-n-bikes",
+      "osm_name": "DNB: Daniel n Bikes",
+      "lat": 52.5235233,
+      "lon": 13.3293662,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    },
+    {
+      "osm_id": "1161567830",
+      "name": "Pedalum mobile",
+      "slug": "pedalum-mobile",
+      "osm_name": "pedalum mobile",
+      "lat": 52.533263,
+      "lon": 13.398321,
+      "partner_tag": "partner_osm",
+      "match_type": "osm_id",
+      "match_confidence": "high"
+    }
+  ],
+  "additional_partners_not_in_osm": [
+    {
+      "name": "Fahrradmeister",
+      "address": "Danziger Straße 64, 10435",
+      "lat": 52.5394,
+      "lon": 13.424,
+      "slug": "fahrradmeister",
+      "partner_tag": "partner_manual",
+      "match_type": "manual_override",
+      "match_confidence": "manual"
+    },
+    {
+      "name": "Drahtesel Plus",
+      "address": "Fehrbelliner Straße 17, 10119",
+      "lat": 52.5329,
+      "lon": 13.3999,
+      "slug": "drahtesel-plus",
+      "partner_tag": "partner_manual",
+      "match_type": "manual_override",
+      "match_confidence": "manual"
+    },
+    {
+      "name": "Betteride Berlin West",
+      "address": "Karl-Liebknecht-Straße 34, 10178",
+      "lat": 52.5233,
+      "lon": 13.4098,
+      "slug": "betteride-berlin-west",
+      "partner_tag": "partner_manual",
+      "match_type": "manual_override",
+      "match_confidence": "manual"
+    },
+    {
+      "name": "VELOBANDE Bikes & Suspension",
+      "address": "Winsstraße 48, 10405",
+      "lat": 52.5371,
+      "lon": 13.4202,
+      "slug": "velobande-bikes-suspension",
+      "partner_tag": "partner_manual",
+      "match_type": "manual_override",
+      "match_confidence": "manual"
+    }
+  ]
+}

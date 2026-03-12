@@ -1,0 +1,181 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "hauptbahnhof-moabit",
+        "name": "Hauptbahnhof / Moabit",
+        "districtLabel": "Mitte / Moabit",
+        "cluster": "west-core",
+        "pickupSuitability": 61,
+        "vanAccessScore": 74,
+        "priorityNote": "High commuter churn with thin east-west repair redundancy."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.347, 52.536], [13.392, 52.536], [13.392, 52.517], [13.347, 52.517], [13.347, 52.536]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "gesundbrunnen-wedding",
+        "name": "Gesundbrunnen / Wedding",
+        "districtLabel": "Mitte / Wedding",
+        "cluster": "north-ring",
+        "pickupSuitability": 66,
+        "vanAccessScore": 71,
+        "priorityNote": "Strong radial cycling demand and station switching pressure."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.36, 52.56], [13.409, 52.56], [13.409, 52.538], [13.36, 52.538], [13.36, 52.56]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "schoenhauser-prenzlauer",
+        "name": "Schoenhauser / Prenzlauer Berg",
+        "districtLabel": "Pankow / Prenzlauer Berg",
+        "cluster": "north-east",
+        "pickupSuitability": 58,
+        "vanAccessScore": 53,
+        "priorityNote": "Dense bike commuting demand with good lane quality and shallow partner depth."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.401, 52.557], [13.445, 52.557], [13.445, 52.537], [13.401, 52.537], [13.401, 52.557]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "greifswalder-ring",
+        "name": "Greifswalder Ring",
+        "districtLabel": "Pankow / Prenzlauer Berg East",
+        "cluster": "north-east",
+        "pickupSuitability": 64,
+        "vanAccessScore": 58,
+        "priorityNote": "Residential demand is high but partner access drops outside the inner core."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.43, 52.548], [13.474, 52.548], [13.474, 52.527], [13.43, 52.527], [13.43, 52.548]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "alexanderplatz-spree",
+        "name": "Alexanderplatz / Spree Core",
+        "districtLabel": "Mitte",
+        "cluster": "inner-east",
+        "pickupSuitability": 57,
+        "vanAccessScore": 46,
+        "priorityNote": "Extremely high pass-through demand with limited stop-and-repair capacity."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.391, 52.531], [13.435, 52.531], [13.435, 52.512], [13.391, 52.512], [13.391, 52.531]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "friedrichshain-ostkreuz",
+        "name": "Friedrichshain / Ostkreuz",
+        "districtLabel": "Friedrichshain-Kreuzberg / Lichtenberg edge",
+        "cluster": "inner-east",
+        "pickupSuitability": 74,
+        "vanAccessScore": 62,
+        "priorityNote": "Eastbound commuter flow and B plus R concentrations create reliable weekday pressure."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.43, 52.516], [13.486, 52.516], [13.486, 52.496], [13.43, 52.496], [13.43, 52.516]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "kreuzberg-goerlitzer",
+        "name": "Kreuzberg / Goerlitzer Park",
+        "districtLabel": "Friedrichshain-Kreuzberg",
+        "cluster": "inner-south",
+        "pickupSuitability": 69,
+        "vanAccessScore": 44,
+        "priorityNote": "Heavy mixed-use cycling and fast-fix demand, but constrained curb and workshop capacity."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.403, 52.507], [13.448, 52.507], [13.448, 52.49], [13.403, 52.49], [13.403, 52.507]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "neukoelln-sonnenallee",
+        "name": "Neukoelln / Sonnenallee",
+        "districtLabel": "Neukoelln",
+        "cluster": "inner-south",
+        "pickupSuitability": 78,
+        "vanAccessScore": 67,
+        "priorityNote": "Underserved compared with corridor demand and station-adjacent bike storage."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.417, 52.492], [13.466, 52.492], [13.466, 52.471], [13.417, 52.471], [13.417, 52.492]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "suedkreuz-tempelhof",
+        "name": "Suedkreuz / Tempelhof",
+        "districtLabel": "Tempelhof-Schoeneberg",
+        "cluster": "south-core",
+        "pickupSuitability": 81,
+        "vanAccessScore": 83,
+        "priorityNote": "Station-led commuter demand and strong van access make this a pickup and mobile-repair candidate."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.351, 52.484], [13.399, 52.484], [13.399, 52.462], [13.351, 52.462], [13.351, 52.484]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "charlottenburg-zoo",
+        "name": "Charlottenburg / Zoo",
+        "districtLabel": "Charlottenburg-Wilmersdorf",
+        "cluster": "west-core",
+        "pickupSuitability": 49,
+        "vanAccessScore": 51,
+        "priorityNote": "Repair supply is healthier here, but reliable commuter service still matters."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.304, 52.521], [13.351, 52.521], [13.351, 52.5], [13.304, 52.5], [13.304, 52.521]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "treptower-alt-treptow",
+        "name": "Treptower Park / Alt-Treptow",
+        "districtLabel": "Treptow-Koepenick / Alt-Treptow",
+        "cluster": "inner-east",
+        "pickupSuitability": 73,
+        "vanAccessScore": 59,
+        "priorityNote": "Bridge crossings and park-edge corridors create repair demand without enough nearby depth."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[13.446, 52.503], [13.501, 52.503], [13.501, 52.486], [13.446, 52.486], [13.446, 52.503]]]
+      }
+    }
+  ]
+}

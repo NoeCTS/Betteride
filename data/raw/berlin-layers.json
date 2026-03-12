@@ -1,0 +1,35 @@
+{
+  "bikeFlowSegments": [
+    { "id": "flow-invalidenring", "name": "Invalidenring commuter corridor", "coordinates": [[13.362, 52.525], [13.383, 52.53], [13.397, 52.544]], "dtvw12h": 9800, "commuterIntensity": 0.87, "peakMultiplier": 1.22, "offPeakMultiplier": 0.88, "weekendMultiplier": 0.71, "sourceId": "dtvw2023" },
+    { "id": "flow-schoenhauser-radial", "name": "Schoenhauser radial", "coordinates": [[13.401, 52.523], [13.41, 52.538], [13.418, 52.551]], "dtvw12h": 10300, "commuterIntensity": 0.9, "peakMultiplier": 1.23, "offPeakMultiplier": 0.87, "weekendMultiplier": 0.72, "sourceId": "dtvw2023" },
+    { "id": "flow-karl-marx-allee", "name": "Alexander to Frankfurter Allee axis", "coordinates": [[13.409, 52.521], [13.438, 52.519], [13.471, 52.515]], "dtvw12h": 11200, "commuterIntensity": 0.82, "peakMultiplier": 1.16, "offPeakMultiplier": 0.95, "weekendMultiplier": 0.86, "sourceId": "dtvw2023" },
+    { "id": "flow-oberbaum-spree", "name": "Oberbaum to Treptower link", "coordinates": [[13.431, 52.507], [13.447, 52.502], [13.47, 52.499]], "dtvw12h": 8900, "commuterIntensity": 0.74, "peakMultiplier": 1.12, "offPeakMultiplier": 0.98, "weekendMultiplier": 0.93, "sourceId": "dtvw2023" },
+    { "id": "flow-kreuzkoelln-radial", "name": "Kreuzberg to Sonnenallee radial", "coordinates": [[13.418, 52.503], [13.425, 52.491], [13.444, 52.481]], "dtvw12h": 9600, "commuterIntensity": 0.78, "peakMultiplier": 1.13, "offPeakMultiplier": 0.96, "weekendMultiplier": 0.9, "sourceId": "dtvw2023" },
+    { "id": "flow-yorck-suedkreuz", "name": "Yorck to Suedkreuz axis", "coordinates": [[13.366, 52.494], [13.365, 52.484], [13.366, 52.474]], "dtvw12h": 9100, "commuterIntensity": 0.89, "peakMultiplier": 1.21, "offPeakMultiplier": 0.87, "weekendMultiplier": 0.68, "sourceId": "dtvw2023" },
+    { "id": "flow-zoo-tiergarten", "name": "Zoo to Tiergarten corridor", "coordinates": [[13.323, 52.509], [13.343, 52.514], [13.364, 52.523]], "dtvw12h": 6100, "commuterIntensity": 0.73, "peakMultiplier": 1.1, "offPeakMultiplier": 0.95, "weekendMultiplier": 0.82, "sourceId": "dtvw2023" }
+  ],
+  "bikeInfrastructureSegments": [
+    { "id": "infra-invaliden", "name": "Invaliden protected lane", "kind": "protected-lane", "coordinates": [[13.364, 52.524], [13.384, 52.529], [13.396, 52.538]], "sourceId": "radverkehrsanlagen" },
+    { "id": "infra-frankfurter", "name": "Frankfurter Allee lane", "kind": "protected-lane", "coordinates": [[13.435, 52.519], [13.456, 52.517], [13.474, 52.515]], "sourceId": "radverkehrsanlagen" },
+    { "id": "infra-tempelhofer-damm", "name": "Tempelhofer Damm lane", "kind": "segregated-cycle-track", "coordinates": [[13.383, 52.486], [13.386, 52.476], [13.389, 52.467]], "sourceId": "radverkehrsanlagen" },
+    { "id": "infra-sonnenallee", "name": "Sonnenallee cycle lane", "kind": "protected-lane", "coordinates": [[13.429, 52.49], [13.438, 52.484], [13.451, 52.477]], "sourceId": "radverkehrsanlagen" },
+    { "id": "infra-zoo-link", "name": "Zoo connector lane", "kind": "cycle-track", "coordinates": [[13.325, 52.507], [13.338, 52.511], [13.35, 52.515]], "sourceId": "radverkehrsanlagen" },
+    { "id": "infra-ostkreuz", "name": "Ostkreuz feeder lane", "kind": "protected-lane", "coordinates": [[13.455, 52.507], [13.468, 52.504], [13.482, 52.5]], "sourceId": "radverkehrsanlagen" }
+  ],
+  "bikeStreetSegments": [
+    { "id": "street-wallstrasse", "name": "Bike street, Wallstrasse corridor", "coordinates": [[13.409, 52.513], [13.414, 52.515], [13.419, 52.517]], "sourceId": "fahrradstrassen" },
+    { "id": "street-tucholsky", "name": "Bike street, Tucholskystrasse", "coordinates": [[13.388, 52.524], [13.39, 52.528], [13.393, 52.533]], "sourceId": "fahrradstrassen" },
+    { "id": "street-belziger", "name": "Bike street, Belziger corridor", "coordinates": [[13.354, 52.486], [13.362, 52.483], [13.37, 52.48]], "sourceId": "fahrradstrassen" },
+    { "id": "street-niederbarnim", "name": "Bike street, Niederbarnimstrasse", "coordinates": [[13.451, 52.511], [13.454, 52.507], [13.458, 52.503]], "sourceId": "fahrradstrassen" }
+  ],
+  "bikeRideLocations": [
+    { "id": "bnr-hbf", "name": "Berlin Hbf Bike and Ride", "lat": 52.5261, "lon": 13.3705, "capacity": 220, "peakMultiplier": 1.16, "offPeakMultiplier": 0.93, "weekendMultiplier": 0.72, "sourceId": "park-and-ride" },
+    { "id": "bnr-gesundbrunnen", "name": "Gesundbrunnen Bike and Ride", "lat": 52.5489, "lon": 13.3897, "capacity": 320, "peakMultiplier": 1.18, "offPeakMultiplier": 0.92, "weekendMultiplier": 0.75, "sourceId": "park-and-ride" },
+    { "id": "bnr-schoenhauser", "name": "Schoenhauser Allee Bike and Ride", "lat": 52.5488, "lon": 13.4144, "capacity": 210, "peakMultiplier": 1.17, "offPeakMultiplier": 0.92, "weekendMultiplier": 0.79, "sourceId": "park-and-ride" },
+    { "id": "bnr-ostkreuz", "name": "Ostkreuz Bike and Ride", "lat": 52.5033, "lon": 13.4704, "capacity": 540, "peakMultiplier": 1.21, "offPeakMultiplier": 0.9, "weekendMultiplier": 0.73, "sourceId": "park-and-ride" },
+    { "id": "bnr-warschauer", "name": "Warschauer Strasse Bike and Ride", "lat": 52.5055, "lon": 13.4484, "capacity": 190, "peakMultiplier": 1.12, "offPeakMultiplier": 0.95, "weekendMultiplier": 0.86, "sourceId": "park-and-ride" },
+    { "id": "bnr-neukoelln", "name": "Neukoelln Bike and Ride", "lat": 52.4768, "lon": 13.4414, "capacity": 180, "peakMultiplier": 1.15, "offPeakMultiplier": 0.94, "weekendMultiplier": 0.81, "sourceId": "park-and-ride" },
+    { "id": "bnr-suedkreuz", "name": "Suedkreuz Bike and Ride", "lat": 52.4748, "lon": 13.3662, "capacity": 460, "peakMultiplier": 1.2, "offPeakMultiplier": 0.9, "weekendMultiplier": 0.71, "sourceId": "park-and-ride" },
+    { "id": "bnr-treptower-park", "name": "Treptower Park Bike and Ride", "lat": 52.4925, "lon": 13.4619, "capacity": 240, "peakMultiplier": 1.14, "offPeakMultiplier": 0.93, "weekendMultiplier": 0.85, "sourceId": "park-and-ride" }
+  ]
+}

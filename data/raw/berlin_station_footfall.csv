@@ -1,0 +1,2 @@
+station_id,station_name,entry_exit_count,period,source_url,status,note
+,,,,https://unternehmen.vbb.de/en/digital-services/datasets/,not_verified_public_bulk_source,Placeholder row only. Use GTFS stop centrality and station access geometry until a verified public or licensed passenger-count feed is available.
