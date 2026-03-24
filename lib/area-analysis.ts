@@ -1,5 +1,14 @@
 import rawLayers from "@/data/raw/berlin-layers.json";
 import { clampKmRadius, distanceKm, estimateBikeMinutes } from "@/lib/geo";
+import {
+  corridorWeight,
+  distanceKmToPolyline,
+  getLayerMultiplier,
+  weightedBikeRideCapacity,
+  weightedSegmentPresence,
+  type BikeRideLocation,
+  type LinearSegment,
+} from "@/lib/spatial";
 import type {
   AppData,
   AreaAnalysisCircle,
@@ -31,26 +40,19 @@ interface FlowSegment {
   weekendMultiplier: number;
 }
 
-interface LinearSegment {
-  id: string;
-  name: string;
-  coordinates: [number, number][];
-}
-
-interface BikeRideLocation {
-  id: string;
-  name: string;
-  lat: number;
-  lon: number;
-  capacity: number;
-  peakMultiplier: number;
-  offPeakMultiplier: number;
-  weekendMultiplier: number;
-}
-
-interface EstimateTerm {
+export interface EstimateTerm {
   value: number;
   coverageCount: number;
+}
+
+export interface SparseCyclistVolumeEstimate {
+  value: number;
+  fallbackEstimate: number;
+  localBlendWeight: number;
+  localSensorEstimate: EstimateTerm;
+  backgroundEstimate: EstimateTerm;
+  networkPriorEstimate: EstimateTerm;
+  urbanActivityEstimate: EstimateTerm;
 }
 
 export interface AreaActionStep {
@@ -130,60 +132,27 @@ export function summarizeAreaCircle(
     0,
   );
 
-  const localSensorEstimate = estimateLocalSensorTerm(
+  const blendedEstimate = estimateSparseCyclistVolume(
     data.counters,
     center,
     radiusKm,
     timeSlice,
-  );
-
-  const backgroundEstimate = estimateCounterBackgroundTerm(
-    data.counters,
-    center,
-    radiusKm,
-    timeSlice,
-    insideStations.length,
-    insideShops.length,
-  );
-
-  const networkPriorEstimate = estimateNetworkPriorTerm(
-    data.counters,
-    center,
-    radiusKm,
-    timeSlice,
-  );
-
-  const urbanActivityEstimate = estimateUrbanActivityBaseline(
-    center,
-    radiusKm,
     insideStations,
     insideShops.length,
-    timeSlice,
-  );
-
-  const fallbackEstimate = Math.round(
-    backgroundEstimate.value * 0.40 +
-      networkPriorEstimate.value * 0.25 +
-      urbanActivityEstimate.value * 0.35,
-  );
-  const localBlendWeight = 1 - Math.exp(-LOCAL_BLEND_RATE * localSensorEstimate.coverageCount);
-  const estimatedCyclistsThroughArea = Math.round(
-    localBlendWeight * localSensorEstimate.value +
-      (1 - localBlendWeight) * fallbackEstimate,
   );
 
   return {
-    estimatedCyclistsThroughArea,
+    estimatedCyclistsThroughArea: blendedEstimate.value,
     observedCounterVolume,
-    localSensorEstimate: localSensorEstimate.value,
-    backgroundEstimate: backgroundEstimate.value,
-    networkPriorEstimate: networkPriorEstimate.value,
-    urbanActivityEstimate: urbanActivityEstimate.value,
+    localSensorEstimate: blendedEstimate.localSensorEstimate.value,
+    backgroundEstimate: blendedEstimate.backgroundEstimate.value,
+    networkPriorEstimate: blendedEstimate.networkPriorEstimate.value,
+    urbanActivityEstimate: blendedEstimate.urbanActivityEstimate.value,
     estimateConfidence: getEstimateConfidence(
-      localSensorEstimate.coverageCount,
-      backgroundEstimate.coverageCount,
-      networkPriorEstimate.coverageCount,
-      urbanActivityEstimate.coverageCount,
+      blendedEstimate.localSensorEstimate.coverageCount,
+      blendedEstimate.backgroundEstimate.coverageCount,
+      blendedEstimate.networkPriorEstimate.coverageCount,
+      blendedEstimate.urbanActivityEstimate.coverageCount,
     ),
     shopCount: insideShops.length,
     partnerCount: insidePartners.length,
@@ -260,7 +229,64 @@ export function buildAreaActionSteps(
   return actions;
 }
 
-function estimateLocalSensorTerm(
+export function estimateSparseCyclistVolume(
+  counters: Counter[],
+  center: { lat: number; lon: number },
+  radiusKm: number,
+  timeSlice: TimeSlice,
+  insideStations: NearbyStation[],
+  shopCount: number,
+): SparseCyclistVolumeEstimate {
+  const localSensorEstimate = estimateLocalSensorTerm(
+    counters,
+    center,
+    radiusKm,
+    timeSlice,
+  );
+  const backgroundEstimate = estimateCounterBackgroundTerm(
+    counters,
+    center,
+    radiusKm,
+    timeSlice,
+    insideStations.length,
+    shopCount,
+  );
+  const networkPriorEstimate = estimateNetworkPriorTerm(
+    counters,
+    center,
+    radiusKm,
+    timeSlice,
+  );
+  const urbanActivityEstimate = estimateUrbanActivityBaseline(
+    center,
+    radiusKm,
+    insideStations,
+    shopCount,
+    timeSlice,
+  );
+
+  const fallbackEstimate = Math.round(
+    backgroundEstimate.value * 0.40 +
+      networkPriorEstimate.value * 0.25 +
+      urbanActivityEstimate.value * 0.35,
+  );
+  const localBlendWeight = 1 - Math.exp(-LOCAL_BLEND_RATE * localSensorEstimate.coverageCount);
+
+  return {
+    value: Math.round(
+      localBlendWeight * localSensorEstimate.value +
+        (1 - localBlendWeight) * fallbackEstimate,
+    ),
+    fallbackEstimate,
+    localBlendWeight,
+    localSensorEstimate,
+    backgroundEstimate,
+    networkPriorEstimate,
+    urbanActivityEstimate,
+  };
+}
+
+export function estimateLocalSensorTerm(
   counters: Counter[],
   center: { lat: number; lon: number },
   radiusKm: number,
@@ -304,7 +330,7 @@ function estimateLocalSensorTerm(
   };
 }
 
-function estimateCounterBackgroundTerm(
+export function estimateCounterBackgroundTerm(
   counters: Counter[],
   center: { lat: number; lon: number },
   radiusKm: number,
@@ -348,7 +374,7 @@ function estimateCounterBackgroundTerm(
   };
 }
 
-function estimateNetworkPriorTerm(
+export function estimateNetworkPriorTerm(
   counters: Counter[],
   center: { lat: number; lon: number },
   radiusKm: number,
@@ -402,7 +428,7 @@ function estimateNetworkPriorTerm(
     0.6,
     layers.bikeStreetSegments,
   );
-  const bikeRideWeight = weightedBikeRideCapacity(center, radiusKm, timeSlice);
+  const bikeRideWeight = weightedBikeRideCapacity(center, radiusKm, timeSlice, layers.bikeRideLocations);
 
   const networkBoost =
     1 +
@@ -420,7 +446,7 @@ function estimateNetworkPriorTerm(
   };
 }
 
-function estimateUrbanActivityBaseline(
+export function estimateUrbanActivityBaseline(
   center: { lat: number; lon: number },
   radiusKm: number,
   insideStations: NearbyStation[],
@@ -478,148 +504,6 @@ function getEstimateConfidence(
   }
 
   return "low";
-}
-
-function corridorWeight(
-  distanceToSegmentKm: number,
-  radiusKm: number,
-  reachKm: number,
-) {
-  if (distanceToSegmentKm <= radiusKm) {
-    return 1;
-  }
-
-  if (distanceToSegmentKm > radiusKm + reachKm) {
-    return 0;
-  }
-
-  return 1 - (distanceToSegmentKm - radiusKm) / reachKm;
-}
-
-function weightedSegmentPresence(
-  center: { lat: number; lon: number },
-  radiusKm: number,
-  reachKm: number,
-  segments: LinearSegment[],
-) {
-  let total = 0;
-
-  for (const segment of segments) {
-    const distanceToSegment = distanceKmToPolyline(center, segment.coordinates);
-    total += corridorWeight(distanceToSegment, radiusKm, reachKm);
-  }
-
-  return total;
-}
-
-function weightedBikeRideCapacity(
-  center: { lat: number; lon: number },
-  radiusKm: number,
-  timeSlice: TimeSlice,
-) {
-  let total = 0;
-
-  for (const bikeRideLocation of layers.bikeRideLocations) {
-    const distanceToLocation = distanceKm(center, bikeRideLocation);
-    const weight = corridorWeight(distanceToLocation, radiusKm, 0.8);
-    if (weight === 0) {
-      continue;
-    }
-
-    total +=
-      (bikeRideLocation.capacity / 80) *
-      getLayerMultiplier(bikeRideLocation, timeSlice) *
-      weight;
-  }
-
-  return total;
-}
-
-function distanceKmToPolyline(
-  point: { lat: number; lon: number },
-  coordinates: [number, number][],
-) {
-  if (coordinates.length === 0) {
-    return Number.POSITIVE_INFINITY;
-  }
-
-  if (coordinates.length === 1) {
-    return distanceKm(point, { lat: coordinates[0][1], lon: coordinates[0][0] });
-  }
-
-  const refLat = point.lat;
-  const pointProjected = projectToKm(point.lon, point.lat, refLat);
-  let bestDistance = Number.POSITIVE_INFINITY;
-
-  for (let index = 0; index < coordinates.length - 1; index += 1) {
-    const start = coordinates[index];
-    const end = coordinates[index + 1];
-    const startProjected = projectToKm(start[0], start[1], refLat);
-    const endProjected = projectToKm(end[0], end[1], refLat);
-
-    const segmentDistance = distancePointToSegment(
-      pointProjected,
-      startProjected,
-      endProjected,
-    );
-
-    if (segmentDistance < bestDistance) {
-      bestDistance = segmentDistance;
-    }
-  }
-
-  return bestDistance;
-}
-
-function projectToKm(lon: number, lat: number, refLat: number) {
-  const latScale = 111.32;
-  const lonScale = 111.32 * Math.cos((refLat * Math.PI) / 180);
-
-  return {
-    x: lon * lonScale,
-    y: lat * latScale,
-  };
-}
-
-function distancePointToSegment(
-  point: { x: number; y: number },
-  start: { x: number; y: number },
-  end: { x: number; y: number },
-) {
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-
-  if (dx === 0 && dy === 0) {
-    return Math.hypot(point.x - start.x, point.y - start.y);
-  }
-
-  const projection =
-    ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy);
-  const clampedProjection = Math.max(0, Math.min(1, projection));
-
-  const closestX = start.x + clampedProjection * dx;
-  const closestY = start.y + clampedProjection * dy;
-
-  return Math.hypot(point.x - closestX, point.y - closestY);
-}
-
-function getLayerMultiplier(
-  layer: {
-    peakMultiplier?: number;
-    offPeakMultiplier?: number;
-    weekendMultiplier?: number;
-  },
-  timeSlice: TimeSlice,
-) {
-  if (timeSlice === "weekday-peak") {
-    return layer.peakMultiplier ?? 1;
-  }
-
-  if (timeSlice === "weekday-offpeak") {
-    return layer.offPeakMultiplier ?? 1;
-  }
-
-  return layer.weekendMultiplier ?? 1;
 }
 
 function buildNearbyRef<T extends { lat: number; lon: number }>(

@@ -17,6 +17,7 @@ import type {
   AppData,
   AreaAnalysisCircle,
   AreaAnalysisSummary,
+  FlyerZoneScore,
   LayerVisibility,
   Mode,
   Station,
@@ -33,6 +34,7 @@ interface SignalMapProps {
   mode: Mode;
   timeSlice: TimeSlice;
   scores: ZoneScore[];
+  flyerScores: FlyerZoneScore[];
   data: AppData;
   layerVisibility: LayerVisibility;
   analysisCircle: AreaAnalysisCircle;
@@ -63,10 +65,18 @@ const COLORS = {
   analysisFill: "#60a5fa",
 };
 
+// Returns green gradient color for flyer mode based on 0-100 score
+function flyerZoneColor(flyerScore: number): string {
+  // Dark forest green (score=100) → pale green (score=0)
+  const lightness = Math.round(20 + flyerScore * 0.45);
+  return `hsl(142, 65%, ${lightness}%)`;
+}
+
 export default function SignalMap({
   mode,
   timeSlice,
   scores,
+  flyerScores,
   data,
   layerVisibility,
   analysisCircle,
@@ -81,11 +91,17 @@ export default function SignalMap({
   onSetAreaRadius,
 }: SignalMapProps) {
   const accent = getModeAccent(mode);
+  const isFlyerMode = mode === "flyer-distribution";
   const selectedScore = scores.find((score) => score.zone.id === selectedZoneId) ?? null;
+  const selectedFlyerScore = flyerScores.find((s) => s.zone.id === selectedZoneId) ?? null;
 
   const top5Ids = useMemo(
-    () => new Set(scores.slice(0, 5).map((score) => score.zone.id)),
-    [scores],
+    () => new Set(
+      isFlyerMode
+        ? flyerScores.slice(0, 5).map((s) => s.zone.id)
+        : scores.slice(0, 5).map((score) => score.zone.id),
+    ),
+    [scores, flyerScores, isFlyerMode],
   );
 
   const selectedNearbyShops = useMemo(
@@ -176,7 +192,7 @@ export default function SignalMap({
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
-        {layerVisibility.zones
+        {layerVisibility.zones && !isFlyerMode
           ? scores.map((score) => {
               const isSelected = score.zone.id === selectedZoneId;
               const isTop5 = top5Ids.has(score.zone.id);
@@ -225,7 +241,53 @@ export default function SignalMap({
             })
           : null}
 
-        {layerVisibility.zones && selectedScore ? (
+        {/* Flyer mode: green-gradient zones sized by prospects/hr */}
+        {layerVisibility.zones && isFlyerMode
+          ? flyerScores.map((fs) => {
+              const isSelected = fs.zone.id === selectedZoneId;
+              const isTop5 = top5Ids.has(fs.zone.id);
+              const zoneColor = flyerZoneColor(fs.flyerScore);
+              const radius = Math.min(1100, Math.max(300, 300 + fs.prospectsPerHour / 10));
+              const bestWindow = fs.bestWindows[0];
+
+              return (
+                <Circle
+                  key={fs.zone.id}
+                  center={[fs.zone.lat, fs.zone.lon]}
+                  radius={radius}
+                  pathOptions={{
+                    color: isSelected ? zoneColor : isTop5 ? zoneColor : "transparent",
+                    fillColor: zoneColor,
+                    fillOpacity: isSelected ? 0.35 : isTop5 ? 0.20 : 0.08,
+                    weight: isSelected ? 2.5 : isTop5 ? 1.5 : 0,
+                  }}
+                  eventHandlers={{ click: () => onSelectZone(fs.zone.id) }}
+                >
+                  <Tooltip direction="top" offset={[0, -10]} sticky>
+                    <div className={css.tooltipCard}>
+                      <div className={css.tooltipKicker}>
+                        {isSelected ? "Selected flyer zone" : isTop5 ? "Top flyer zone" : "Flyer zone"}
+                      </div>
+                      <div className={css.tooltipTitle}>{fs.zone.name}</div>
+                      <div className={css.tooltipMeta}>
+                        Score <strong>{round(fs.flyerScore, 0)}</strong> · {fs.prospectsPerHour}/hr prospects
+                      </div>
+                      <div className={css.tooltipMeta}>
+                        ~{fs.estimatedCyclistsPerHour.toLocaleString()} cyclists/hr
+                      </div>
+                      {bestWindow && (
+                        <div className={css.tooltipMeta}>
+                          Best: {bestWindow.label}
+                        </div>
+                      )}
+                    </div>
+                  </Tooltip>
+                </Circle>
+              );
+            })
+          : null}
+
+        {layerVisibility.zones && !isFlyerMode && selectedScore ? (
           <Circle
             center={[selectedScore.zone.lat, selectedScore.zone.lon]}
             radius={1500}
@@ -236,6 +298,21 @@ export default function SignalMap({
               weight: 1,
               dashArray: "6 4",
               opacity: 0.45,
+            }}
+          />
+        ) : null}
+
+        {layerVisibility.zones && isFlyerMode && selectedFlyerScore ? (
+          <Circle
+            center={[selectedFlyerScore.zone.lat, selectedFlyerScore.zone.lon]}
+            radius={1500}
+            pathOptions={{
+              color: flyerZoneColor(selectedFlyerScore.flyerScore),
+              fillColor: "transparent",
+              fillOpacity: 0,
+              weight: 1,
+              dashArray: "6 4",
+              opacity: 0.50,
             }}
           />
         ) : null}
@@ -546,13 +623,15 @@ export default function SignalMap({
           : null}
       </MapContainer>
 
-      <SelectedZoneBrief
-        mode={mode}
-        timeSlice={timeSlice}
-        onSelectZone={onSelectZone}
-        scores={scores}
-        selectedZoneId={selectedZoneId}
-      />
+      {!isFlyerMode && (
+        <SelectedZoneBrief
+          mode={mode}
+          timeSlice={timeSlice}
+          onSelectZone={onSelectZone}
+          scores={scores}
+          selectedZoneId={selectedZoneId}
+        />
+      )}
 
       <AreaAnalysisBrief
         circle={analysisCircle}

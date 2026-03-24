@@ -18,10 +18,12 @@ interface Weights {
 }
 
 const MODE_WEIGHTS: Record<Mode, Weights> = {
-  "coverage-gap":         { gap: 0.35, demand: 0.30, supplyInverse: 0.20, candidates: 0.00, stationAdj: 0.15, isolation: 0.00 },
-  "partner-acquisition":  { gap: 0.20, demand: 0.15, supplyInverse: 0.00, candidates: 0.45, stationAdj: 0.20, isolation: 0.00 },
-  "mobile-repair":        { gap: 0.25, demand: 0.25, supplyInverse: 0.00, candidates: 0.00, stationAdj: 0.10, isolation: 0.40 },
-  "commuter-reliability": { gap: 0.20, demand: 0.15, supplyInverse: 0.15, candidates: 0.00, stationAdj: 0.40, isolation: 0.10 },
+  "coverage-gap":          { gap: 0.35, demand: 0.30, supplyInverse: 0.20, candidates: 0.00, stationAdj: 0.15, isolation: 0.00 },
+  "partner-acquisition":   { gap: 0.20, demand: 0.15, supplyInverse: 0.00, candidates: 0.45, stationAdj: 0.20, isolation: 0.00 },
+  "mobile-repair":         { gap: 0.25, demand: 0.25, supplyInverse: 0.00, candidates: 0.00, stationAdj: 0.10, isolation: 0.40 },
+  "commuter-reliability":  { gap: 0.20, demand: 0.15, supplyInverse: 0.15, candidates: 0.00, stationAdj: 0.40, isolation: 0.10 },
+  // Flyer distribution uses its own scorer (flyer-optimizer.ts); these weights are a fallback only
+  "flyer-distribution":    { gap: 0.35, demand: 0.30, supplyInverse: 0.20, candidates: 0.00, stationAdj: 0.15, isolation: 0.00 },
 };
 
 // ---------------------------------------------------------------------------
@@ -249,6 +251,14 @@ function generateIntel(
           ? `Ensure same-day repair capacity near ${topStation} during peak hours. Consider guaranteed turnaround SLA for commuter bookings.`
           : `Priority: establish at least one partner or mobile unit near ${topStation} for weekday commuter coverage.`,
         kpis: ["Peak-hour booking fill rate", "Same-day completion %", "Commuter repeat booking rate", "Avg time from booking to repair start"],
+      };
+
+    case "flyer-distribution":
+      return {
+        headline: `Use Flyer Distribution mode for zone-specific marketing recommendations`,
+        signals: [`${dailyVolume.toLocaleString()} daily cyclists nearby`, `${zone.shopCount} repair shops in zone`],
+        action: `Switch to Flyer Distribution mode to get day-by-day, spot-level flyer recommendations for this zone.`,
+        kpis: ["Flyers distributed per session", "QR scan / redemption rate"],
       };
   }
 }

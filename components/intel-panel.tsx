@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import type {
   AreaAnalysisCircle,
   AreaAnalysisSummary,
+  FlyerTimeContext,
+  FlyerZoneScore,
   Mode,
   TimeSlice,
   ZoneScore,
@@ -11,12 +13,15 @@ import { getModeAccent } from "@/lib/types";
 import { round } from "@/lib/geo";
 import { buildZoneInsights } from "@/lib/zone-insights";
 import { buildAreaActionSteps, getCounterMetricForTimeSlice } from "@/lib/area-analysis";
+import { formatFlyerTimeLabel } from "@/lib/time-model";
 import css from "./ground-signal.module.css";
 
 interface IntelPanelProps {
   mode: Mode;
   timeSlice: TimeSlice;
+  flyerTimeContext: FlyerTimeContext;
   scores: ZoneScore[];
+  flyerScores: FlyerZoneScore[];
   analysisEnabled: boolean;
   placementMode: boolean;
   analysisCircle: AreaAnalysisCircle;
@@ -29,7 +34,9 @@ interface IntelPanelProps {
 export default function IntelPanel({
   mode,
   timeSlice,
+  flyerTimeContext,
   scores,
+  flyerScores,
   analysisEnabled,
   placementMode,
   analysisCircle,
@@ -39,14 +46,21 @@ export default function IntelPanel({
   onClearArea,
 }: IntelPanelProps) {
   const accent = getModeAccent(mode);
-  const top10 = scores.slice(0, 10);
-  const selected = scores.find((score) => score.zone.id === selectedZoneId) ?? null;
-  const showAreaAnalysis = analysisEnabled || Boolean(analysisSummary);
+  const isFlyerMode = mode === "flyer-distribution";
+
+  const activeScores = isFlyerMode ? flyerScores : scores;
+  const top10 = activeScores.slice(0, 10);
+  const selected = isFlyerMode
+    ? flyerScores.find((s) => s.zone.id === selectedZoneId) ?? null
+    : scores.find((score) => score.zone.id === selectedZoneId) ?? null;
+  const showAreaAnalysis = !isFlyerMode && (analysisEnabled || Boolean(analysisSummary));
 
   return (
     <div className={css.intelPanel}>
       <div className={css.intelHeader}>
-        <div className={css.intelTitle}>Top opportunity zones</div>
+        <div className={css.intelTitle}>
+          {isFlyerMode ? "Top flyer zones" : "Top opportunity zones"}
+        </div>
         <label className={css.zonePickerLabel} htmlFor="zone-picker">
           Selected zone
         </label>
@@ -54,9 +68,9 @@ export default function IntelPanel({
           className={css.zonePicker}
           id="zone-picker"
           onChange={(event) => onSelectZone(event.target.value)}
-          value={selected?.zone.id ?? scores[0]?.zone.id ?? ""}
+          value={selected?.zone.id ?? activeScores[0]?.zone.id ?? ""}
         >
-          {scores.map((score, index) => (
+          {activeScores.map((score, index) => (
             <option key={score.zone.id} value={score.zone.id}>
               {index + 1}. {score.zone.name}
             </option>
@@ -65,29 +79,43 @@ export default function IntelPanel({
       </div>
 
       <div className={css.zoneList}>
-        {top10.map((score, index) => (
-          <div
-            key={score.zone.id}
-            className={`${css.zoneRow} ${selectedZoneId === score.zone.id ? css.zoneRowActive : ""}`}
-            onClick={() => onSelectZone(score.zone.id)}
-          >
-            <span className={css.zoneRank}>{index + 1}</span>
-            <div>
-              <div className={css.zoneName}>{score.zone.name}</div>
-              <div
-                className={css.zoneBar}
-                style={{
-                  width: `${score.opportunity}%`,
-                  background: accent,
-                  opacity: selectedZoneId === score.zone.id ? 1 : 0.5,
-                }}
-              />
+        {top10.map((score, index) => {
+          const displayScore = isFlyerMode
+            ? (score as FlyerZoneScore).flyerScore
+            : (score as ZoneScore).opportunity;
+          const subLabel = isFlyerMode
+            ? `${(score as FlyerZoneScore).prospectsPerHour}/hr`
+            : undefined;
+
+          return (
+            <div
+              key={score.zone.id}
+              className={`${css.zoneRow} ${selectedZoneId === score.zone.id ? css.zoneRowActive : ""}`}
+              onClick={() => onSelectZone(score.zone.id)}
+            >
+              <span className={css.zoneRank}>{index + 1}</span>
+              <div>
+                <div className={css.zoneName}>{score.zone.name}</div>
+                {subLabel && (
+                  <div style={{ fontSize: 10, color: accent, opacity: 0.8, marginTop: 1 }}>
+                    {subLabel} prospects
+                  </div>
+                )}
+                <div
+                  className={css.zoneBar}
+                  style={{
+                    width: `${displayScore}%`,
+                    background: accent,
+                    opacity: selectedZoneId === score.zone.id ? 1 : 0.5,
+                  }}
+                />
+              </div>
+              <span className={css.zoneScore} style={{ color: accent }}>
+                {round(displayScore, 0)}
+              </span>
             </div>
-            <span className={css.zoneScore} style={{ color: accent }}>
-              {round(score.opportunity, 0)}
-            </span>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className={css.intelCard}>
@@ -104,15 +132,176 @@ export default function IntelPanel({
           </>
         ) : null}
 
-        {!selected ? (
+        {isFlyerMode ? (
+          selected === null ? (
+            <div className={css.intelEmpty}>
+              Click a zone on the map or in the list above to see flyer recommendations
+            </div>
+          ) : (
+            <FlyerIntelCard
+              score={selected as FlyerZoneScore}
+              accent={accent}
+              flyerTimeContext={flyerTimeContext}
+            />
+          )
+        ) : !selected ? (
           <div className={css.intelEmpty}>
             Click a zone on the map or in the list above to see intelligence
           </div>
         ) : (
-          <ZoneIntelCard mode={mode} score={selected} accent={accent} timeSlice={timeSlice} />
+          <ZoneIntelCard mode={mode} score={selected as ZoneScore} accent={accent} timeSlice={timeSlice} />
         )}
       </div>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Flyer Intel Card
+// ---------------------------------------------------------------------------
+
+const SPOT_TYPE_LABELS: Record<string, string> = {
+  "br-stop": "B+R Stop",
+  "station-entrance": "Station",
+  "protected-lane": "Bike Lane",
+  "bike-street": "Bike Street",
+  "shop-cluster": "Shop Cluster",
+};
+
+function FlyerIntelCard({
+  score,
+  accent,
+  flyerTimeContext,
+}: {
+  score: FlyerZoneScore;
+  accent: string;
+  flyerTimeContext: FlyerTimeContext;
+}) {
+  return (
+    <>
+      <div className={css.headline}>{score.headline}</div>
+      <div className={css.zoneSubtitle}>
+        Selected zone: <strong>{score.zone.name}</strong> · {formatFlyerTimeLabel(flyerTimeContext)}
+      </div>
+
+      <div className={css.meters}>
+        <Meter label="Cyclist Vol." value={score.cyclistVolumeScore} color={accent} />
+        <Meter label="Dwell Opp." value={score.dwellScore} color="#5e6a62" />
+        <Meter label="Infra" value={score.infraScore} color="#7a6320" />
+      </div>
+
+      <div className={css.numbers}>
+        <MetricCard
+          label="cyclists/hr"
+          value={score.estimatedCyclistsPerHour.toLocaleString()}
+        />
+        <MetricCard
+          label="prospects/hr"
+          value={score.prospectsPerHour.toLocaleString()}
+        />
+        <MetricCard
+          label="audience fit"
+          value={`${round(score.audienceFitScore, 0)}/100`}
+        />
+        <MetricCard
+          label="brand affinity"
+          value={`${round(score.affinityScore, 0)}/100`}
+        />
+        <MetricCard
+          label="repair shops"
+          value={score.zone.shopCount.toString()}
+        />
+        <MetricCard
+          label="nearby stations"
+          value={score.zone.nearbyStations.length.toString()}
+        />
+      </div>
+
+      <Section title="Team & flyer advice">
+        <div
+          className={css.actionCard}
+          style={{ background: accent + "14", borderLeft: `3px solid ${accent}` }}
+        >
+          {score.teamAdvice}
+        </div>
+      </Section>
+
+      <Section title="Where to stand">
+        {score.topSpots.length === 0 ? (
+          <div className={css.infoEmpty}>No specific spots identified for this zone.</div>
+        ) : (
+          <div className={css.infoList}>
+            {score.topSpots.map((spot, i) => (
+              <div key={i} className={css.infoRow} style={{ flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 600,
+                      padding: "2px 6px",
+                      borderRadius: 3,
+                      background: accent + "22",
+                      color: accent,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {SPOT_TYPE_LABELS[spot.type] ?? spot.type}
+                  </span>
+                  <strong style={{ fontSize: 12 }}>{spot.name}</strong>
+                  <span style={{ marginLeft: "auto", color: accent, fontWeight: 700, fontSize: 12 }}>
+                    {spot.prospectsPerHour}/hr
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>
+                  {spot.positioningHint}
+                </div>
+                <div style={{ fontSize: 10, opacity: 0.6 }}>
+                  ~{spot.estimatedCyclistsPerHour} cyclists/hr · {Math.round(spot.interactionQuality * 100)}% take rate · {Math.round(spot.audienceFit * 100)}% audience fit
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Best time windows for this zone">
+        {score.bestWindows.length === 0 ? (
+          <div className={css.infoEmpty}>No window data available.</div>
+        ) : (
+          <div className={css.infoList}>
+            {score.bestWindows.map((win, i) => (
+              <div key={i} className={css.infoRow}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600 }}>{win.label}</div>
+                  <div
+                    style={{
+                      height: 4,
+                      borderRadius: 2,
+                      marginTop: 3,
+                      width: `${win.flyerScore}%`,
+                      background: accent,
+                      opacity: 0.7,
+                    }}
+                  />
+                </div>
+                <span style={{ color: accent, fontWeight: 700, fontSize: 12, whiteSpace: "nowrap" }}>
+                  {win.prospectsPerHour}/hr
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
+
+      <Section title="Recommendation">
+        <div
+          className={css.actionCard}
+          style={{ background: accent + "14", borderLeft: `3px solid ${accent}` }}
+        >
+          {score.recommendation}
+        </div>
+      </Section>
+    </>
   );
 }
 

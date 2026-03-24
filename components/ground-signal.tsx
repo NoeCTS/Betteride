@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import type {
   AreaAnalysisCircle,
   AppData,
+  FlyerTimeContext,
+  FlyerZoneScore,
   LayerVisibility,
   MapLayerKey,
   Mode,
@@ -13,6 +15,7 @@ import type {
 import { clampKmRadius } from "@/lib/geo";
 import { summarizeAreaCircle } from "@/lib/area-analysis";
 import { scoreZones } from "@/lib/engine";
+import { scoreFlyerZones } from "@/lib/flyer-optimizer";
 import ModeBar from "./mode-bar";
 import IntelPanel from "./intel-panel";
 import css from "./ground-signal.module.css";
@@ -46,6 +49,10 @@ const EMPTY_AREA_CIRCLE: AreaAnalysisCircle = {
 export default function GroundSignal() {
   const [mode, setMode] = useState<Mode>("coverage-gap");
   const [timeSlice, setTimeSlice] = useState<TimeSlice>("weekday-peak");
+  const [flyerTimeContext, setFlyerTimeContext] = useState<FlyerTimeContext>({
+    day: "friday",
+    timeBlock: "afternoon-peak",
+  });
   const [selectedZoneId, setSelectedZoneId] = useState<string | null>(null);
   const [layerVisibility, setLayerVisibility] =
     useState<LayerVisibility>(DEFAULT_LAYER_VISIBILITY);
@@ -57,6 +64,10 @@ export default function GroundSignal() {
   const scores = useMemo(
     () => scoreZones(appData, mode, timeSlice),
     [mode, timeSlice],
+  );
+  const flyerScores = useMemo(
+    () => mode === "flyer-distribution" ? scoreFlyerZones(appData, flyerTimeContext) : [],
+    [mode, flyerTimeContext],
   );
   const analysisSummary = useMemo(
     () => summarizeAreaCircle(appData, analysisCircle, timeSlice),
@@ -134,16 +145,19 @@ export default function GroundSignal() {
   }
 
   // Auto-select top zone if nothing selected
+  const isFlyerMode = mode === "flyer-distribution";
+  const activeScoreList = isFlyerMode ? flyerScores : scores;
   const effectiveSelectedId =
-    selectedZoneId && scores.some((s) => s.zone.id === selectedZoneId)
+    selectedZoneId && activeScoreList.some((s) => s.zone.id === selectedZoneId)
       ? selectedZoneId
-      : scores[0]?.zone.id ?? null;
+      : activeScoreList[0]?.zone.id ?? null;
 
   return (
     <div className={css.shell}>
       <ModeBar
         mode={mode}
         timeSlice={timeSlice}
+        flyerTimeContext={flyerTimeContext}
         layerVisibility={layerVisibility}
         analysisEnabled={analysisEnabled}
         placementMode={placementMode}
@@ -151,6 +165,7 @@ export default function GroundSignal() {
         hasAreaCircle={Boolean(analysisCircle.center)}
         onModeChange={setMode}
         onTimeSliceChange={setTimeSlice}
+        onFlyerTimeContextChange={setFlyerTimeContext}
         onToggleLayer={handleToggleLayer}
         onToggleAnalysis={handleToggleAnalysis}
         onClearArea={handleClearArea}
@@ -161,6 +176,7 @@ export default function GroundSignal() {
           mode={mode}
           timeSlice={timeSlice}
           scores={scores}
+          flyerScores={flyerScores}
           data={appData}
           layerVisibility={layerVisibility}
           analysisCircle={analysisCircle}
@@ -177,6 +193,8 @@ export default function GroundSignal() {
         <IntelPanel
           mode={mode}
           scores={scores}
+          flyerScores={flyerScores}
+          flyerTimeContext={flyerTimeContext}
           timeSlice={timeSlice}
           analysisEnabled={analysisEnabled}
           placementMode={placementMode}

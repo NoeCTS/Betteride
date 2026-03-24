@@ -7,9 +7,68 @@ export type Mode =
   | "coverage-gap"
   | "partner-acquisition"
   | "mobile-repair"
-  | "commuter-reliability";
+  | "commuter-reliability"
+  | "flyer-distribution";
 
 export type TimeSlice = "weekday-peak" | "weekday-offpeak" | "weekend";
+
+// ---------------------------------------------------------------------------
+// Flyer Distribution — time context types (defined here to avoid circular deps
+// with time-model.ts which imports TimeSlice from this file)
+// ---------------------------------------------------------------------------
+export type DayOfWeek =
+  | "monday" | "tuesday" | "wednesday" | "thursday"
+  | "friday" | "saturday" | "sunday";
+
+export type TimeBlock =
+  | "morning-peak"
+  | "midday"
+  | "afternoon-peak"
+  | "evening";
+
+export interface FlyerTimeContext {
+  day: DayOfWeek;
+  timeBlock: TimeBlock;
+}
+
+export interface FlyerSpot {
+  name: string;
+  type: "br-stop" | "station-entrance" | "protected-lane" | "bike-street" | "shop-cluster";
+  lat: number;
+  lon: number;
+  estimatedCyclistsPerHour: number;
+  interactionQuality: number;
+  effectiveContactsPerHour: number;
+  audienceFit: number;
+  prospectsPerHour: number;
+  positioningHint: string;
+}
+
+export interface FlyerTimeWindow {
+  day: DayOfWeek;
+  timeBlock: TimeBlock;
+  label: string;
+  flyerScore: number;
+  prospectsPerHour: number;
+  cyclistsPerHour: number;
+}
+
+export interface FlyerZoneScore {
+  zone: Zone;
+  flyerScore: number;
+  estimatedCyclistsPerHour: number;
+  prospectsPerHour: number;
+  cyclistVolumeScore: number;
+  dwellScore: number;
+  infraScore: number;
+  audienceFitScore: number;
+  affinityScore: number;
+  topSpots: FlyerSpot[];
+  bestWindows: FlyerTimeWindow[];
+  headline: string;
+  recommendation: string;
+  teamAdvice: string;
+}
 export type ShopTag = "candidate" | "partner_osm" | "partner_manual";
 export type MapLayerKey = "zones" | "stations" | "partners" | "candidates";
 export type LayerVisibility = Record<MapLayerKey, boolean>;
@@ -182,6 +241,13 @@ export const MODE_DEFS: ModeDefinition[] = [
     short: "Commuter",
     accent: "#4d7ecf",
     description: "Focuses on station-led commuter corridors that need dependable same-day repair.",
+  },
+  {
+    id: "flyer-distribution",
+    label: "Flyer Distribution",
+    short: "Flyers",
+    accent: "#16a34a",
+    description: "Finds the best zones, times, and exact spots to hand out flyers to the most receptive cyclists.",
   },
 ];
 

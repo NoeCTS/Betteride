@@ -143,5 +143,14 @@ function buildActionSteps(
           detail: "Track fill rate, same-day completion, and commuter repeat bookings during peak windows.",
         },
       ];
+
+    case "flyer-distribution":
+      return [
+        {
+          title: "Switch to Flyer Distribution mode",
+          detail: "Use the Flyer Distribution tab to get day-by-day, spot-level recommendations for this zone.",
+        },
+        ...genericActions,
+      ];
   }
 }
