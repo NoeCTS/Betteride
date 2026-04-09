@@ -31,7 +31,6 @@ import {
   TIME_BLOCK_DEFS,
   formatFlyerTimeShort,
   flyerContextToTimeSlice,
-  getWithinBucketMultiplier,
   isWeekend,
 } from "@/lib/time-model";
 import type {
@@ -127,9 +126,9 @@ export function scoreFlyerZones(
     rawCyclist.push(cyclist);
     rawDwell.push(computeDwellTerm(zone, ctx));
     rawInfra.push(computeInfraTerm(zone));
-    rawAudience.push(computeAudienceFitTerm(zone, ze));
+    rawAudience.push(computeAudienceFitTerm(zone, ze, ctx));
     rawAffinity.push(computeAffinityTerm(zone));
-    rawProspects.push(computeRawProspects(zone, cyclist, ze));
+    rawProspects.push(computeRawProspects(zone, cyclist, ze, ctx));
   }
 
   // Step 2: normalize each term 0–100
@@ -205,9 +204,127 @@ export function scoreFlyerZones(
 }
 
 // ---------------------------------------------------------------------------
+// Zone-specific time profile
+// Different zone compositions respond differently to time-of-day changes:
+//   - Station-heavy zones spike during commute peaks, drop on weekends
+//   - B+R zones are strongest in the morning (commuters parking bikes)
+//   - Shop-cluster zones are steadier throughout the day
+//   - Leisure-oriented zones (parks, low commuter intensity) peak on weekends
+// ---------------------------------------------------------------------------
+
+interface ZoneTimeProfile {
+  /** Commute-peak bonus (morning + afternoon on weekdays) */
+  commuterWeight: number;
+  /** Morning-specific bonus (B+R, station arrivals) */
+  morningWeight: number;
+  /** Midday/leisure bonus (weekend + midday) */
+  leisureWeight: number;
+  /** Evening resilience (shops, nightlife corridors) */
+  eveningWeight: number;
+}
+
+function computeZoneTimeProfile(zone: Zone): ZoneTimeProfile {
+  const center = { lat: zone.lat, lon: zone.lon };
+  const radiusKm = zone.radius;
+
+  // Station density signal (0-1): more stations → stronger commuter pattern
+  const stationSignal = clamp(zone.nearbyStations.length / 4, 0, 1);
+  // S+U stations have particularly strong commuter swings
+  const majorStationBoost = zone.nearbyStations.some(
+    (s) => s.item.type === "S+U" && s.distanceKm <= 0.8,
+  ) ? 0.25 : 0;
+
+  // B+R proximity signal (0-1): B+R = heavy morning usage
+  let brSignal = 0;
+  for (const loc of layers.bikeRideLocations) {
+    const dist = distanceKm(center, loc);
+    if (dist <= radiusKm + 0.8) {
+      brSignal = Math.max(brSignal, 1 - dist / (radiusKm + 0.8));
+    }
+  }
+
+  // Shop density signal (0-1): shops provide steadier all-day traffic
+  const shopSignal = clamp(zone.shopCount / 6, 0, 1);
+
+  // Flow corridor commuter intensity (0-1)
+  let avgCommuterIntensity = 0;
+  let corridorCount = 0;
+  for (const seg of layers.bikeFlowSegments) {
+    const dist = distanceKmToPolyline(center, seg.coordinates);
+    if (dist <= radiusKm + 0.5) {
+      avgCommuterIntensity += seg.commuterIntensity;
+      corridorCount++;
+    }
+  }
+  avgCommuterIntensity = corridorCount > 0 ? avgCommuterIntensity / corridorCount : 0.5;
+
+  return {
+    commuterWeight: clamp(
+      0.3 + 0.4 * stationSignal + 0.2 * avgCommuterIntensity + majorStationBoost,
+      0, 1,
+    ),
+    morningWeight: clamp(
+      0.2 + 0.5 * brSignal + 0.25 * stationSignal + 0.1 * avgCommuterIntensity,
+      0, 1,
+    ),
+    leisureWeight: clamp(
+      0.3 + 0.3 * (1 - avgCommuterIntensity) + 0.2 * shopSignal - 0.15 * stationSignal,
+      0, 1,
+    ),
+    eveningWeight: clamp(
+      0.15 + 0.4 * shopSignal + 0.15 * (1 - brSignal),
+      0, 1,
+    ),
+  };
+}
+
+/**
+ * Zone-specific time multiplier: modulates the base estimate differently per zone
+ * based on its composition. This is the key to making day/time changes produce
+ * meaningfully different zone rankings.
+ */
+function getZoneTimeMultiplier(profile: ZoneTimeProfile, ctx: FlyerTimeContext): number {
+  const weekend = isWeekend(ctx.day);
+
+  // Base profile response by time block
+  switch (ctx.timeBlock) {
+    case "morning-peak": {
+      // Commuter + B+R zones spike; leisure zones are quiet
+      const boost = weekend
+        ? 0.65 + 0.35 * profile.leisureWeight  // weekends: leisure zones recover somewhat
+        : 0.80 + 0.45 * profile.commuterWeight + 0.30 * profile.morningWeight;
+      return boost;
+    }
+    case "midday": {
+      // Leisure zones peak; commuter zones dip
+      const boost = weekend
+        ? 0.85 + 0.40 * profile.leisureWeight + 0.15 * profile.eveningWeight
+        : 0.55 + 0.35 * profile.leisureWeight + 0.20 * profile.eveningWeight;
+      return boost;
+    }
+    case "afternoon-peak": {
+      // Strong commuter return + leisure overlap
+      const boost = weekend
+        ? 0.75 + 0.30 * profile.leisureWeight
+        : 0.75 + 0.40 * profile.commuterWeight + 0.10 * profile.leisureWeight;
+      return boost;
+    }
+    case "evening": {
+      // Most zones quiet; shop/nightlife corridors hold better
+      const boost = weekend
+        ? 0.40 + 0.35 * profile.eveningWeight + 0.15 * profile.leisureWeight
+        : 0.35 + 0.40 * profile.eveningWeight;
+      return boost;
+    }
+    default:
+      return 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Term 1: Cyclist Volume
 // blended sensor + background + network + urban activity estimate,
-// adjusted for day × time
+// adjusted for day × time with zone-specific time profiles
 // ---------------------------------------------------------------------------
 
 function computeCyclistVolumeTerm(
@@ -246,15 +363,16 @@ function computeCyclistVolumeTerm(
     }
   }
 
-  // The blended estimate already reflects peak/offpeak/weekend via timeSlice selection.
-  // Apply day-of-week multiplier (new info) + within-bucket relative multiplier
-  // (differentiates e.g. morning vs afternoon within "weekday-peak" bucket).
   const weatherMultiplier = conditions?.weather?.multiplier ?? 1;
   const transitBoost = computeTransitBoost(zone.nearbyStations, conditions?.stationDisruptions);
 
+  // Zone-specific time profile: different zones respond differently to time changes
+  const profile = computeZoneTimeProfile(zone);
+  const zoneTimeMult = getZoneTimeMultiplier(profile, ctx);
+
   return baseEstimate
     * DAY_MULTIPLIERS[ctx.day]
-    * getWithinBucketMultiplier(ctx)
+    * zoneTimeMult
     * weatherMultiplier
     * transitBoost.boostMultiplier;
 }
@@ -263,9 +381,9 @@ function computeCyclistVolumeTerm(
 // Raw prospects per hour (before normalization — used for absolute numbers)
 // ---------------------------------------------------------------------------
 
-function computeRawProspects(zone: Zone, cyclistVolume: number, ze?: AreaEnrichment): number {
+function computeRawProspects(zone: Zone, cyclistVolume: number, ze?: AreaEnrichment, ctx?: FlyerTimeContext): number {
   const cyclistsPerHour = cyclistVolume * 0.85;
-  const audienceFit = computeRawAudienceFit(zone, ze);
+  const audienceFit = computeRawAudienceFit(zone, ze, ctx);
   const repairDemandMultiplier = ze?.repairDemandMultiplier ?? 1;
 
   // Weighted average interaction quality from top spots
@@ -339,13 +457,15 @@ function computeInfraTerm(zone: Zone): number {
 // ---------------------------------------------------------------------------
 // Term 4: Audience Fit
 // Commuter routes = daily cyclists with high repair need
+// Now time-aware: commuter audience is strongest during peak hours,
+// leisure audience is strongest on weekends and midday
 // ---------------------------------------------------------------------------
 
-function computeAudienceFitTerm(zone: Zone, ze?: AreaEnrichment): number {
-  return computeRawAudienceFit(zone, ze) * 100;
+function computeAudienceFitTerm(zone: Zone, ze: AreaEnrichment | undefined, ctx: FlyerTimeContext): number {
+  return computeRawAudienceFit(zone, ze, ctx) * 100;
 }
 
-function computeRawAudienceFit(zone: Zone, ze?: AreaEnrichment): number {
+function computeRawAudienceFit(zone: Zone, ze?: AreaEnrichment, ctx?: FlyerTimeContext): number {
   const center = { lat: zone.lat, lon: zone.lon };
   const radiusKm = zone.radius;
 
@@ -361,8 +481,35 @@ function computeRawAudienceFit(zone: Zone, ze?: AreaEnrichment): number {
   }
   const avgCommuter = totalWeight > 0 ? weightedIntensity / totalWeight : 0.5;
 
+  // Time-aware audience composition: commuters dominate during peaks,
+  // leisure cyclists are more present on weekends and midday
+  let effectiveCommuterShare = avgCommuter;
+  if (ctx) {
+    const weekend = isWeekend(ctx.day);
+    if (weekend) {
+      // Weekends: commuter share drops, leisure rises
+      effectiveCommuterShare *= 0.45;
+    } else {
+      switch (ctx.timeBlock) {
+        case "morning-peak":
+          effectiveCommuterShare *= 1.30; // overwhelmingly commuters
+          break;
+        case "afternoon-peak":
+          effectiveCommuterShare *= 1.15; // commuters + some leisure
+          break;
+        case "midday":
+          effectiveCommuterShare *= 0.55; // mostly leisure/errands
+          break;
+        case "evening":
+          effectiveCommuterShare *= 0.40; // recreational cyclists
+          break;
+      }
+    }
+    effectiveCommuterShare = clamp(effectiveCommuterShare, 0, 1);
+  }
+
   // audienceFit: commuters = 0.95, leisure = 0.60
-  const fitMultiplier = 0.60 + 0.35 * avgCommuter;
+  const fitMultiplier = 0.60 + 0.35 * effectiveCommuterShare;
   // repair-shop culture boost
   const shopBoost = Math.min(0.15, zone.shopCount * 0.015);
 
@@ -406,7 +553,7 @@ function buildFlyerSpots(
   const dayMult = DAY_MULTIPLIERS[ctx.day];
   const timeDef = TIME_BLOCK_DEFS.find((t) => t.id === ctx.timeBlock)!;
   const timeMult = isWeekend(ctx.day) ? timeDef.weekendMultiplier : timeDef.weekdayMultiplier;
-  const audienceFit = computeRawAudienceFit(zone, ze);
+  const audienceFit = computeRawAudienceFit(zone, ze, ctx);
   const weatherMultiplier = conditions?.weather?.multiplier ?? 1;
   const zoneTransitBoost = computeTransitBoost(zone.nearbyStations, conditions?.stationDisruptions);
 
@@ -587,9 +734,9 @@ function computeBestWindows(zone: Zone, data: AppData): FlyerTimeWindow[] {
       const cyclistRaw = computeCyclistVolumeTerm(zone, ctx, data);
       const dwellRaw = computeDwellTerm(zone, ctx);
       const infraRaw = computeInfraTerm(zone);
-      const audienceRaw = computeAudienceFitTerm(zone);
+      const audienceRaw = computeAudienceFitTerm(zone, undefined, ctx);
       const affinityRaw = computeAffinityTerm(zone);
-      const prospectsRaw = computeRawProspects(zone, cyclistRaw);
+      const prospectsRaw = computeRawProspects(zone, cyclistRaw, undefined, ctx);
 
       // Use raw values directly for relative ranking (no cross-zone normalization needed here)
       const rawScore =
