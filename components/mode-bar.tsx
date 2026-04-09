@@ -1,4 +1,10 @@
-import type { FlyerTimeContext, LayerVisibility, MapLayerKey, Mode, TimeSlice } from "@/lib/types";
+import Image from "next/image";
+import type {
+  FlyerPlannerInput,
+  FlyerTimeContext,
+  Mode,
+  TimeSlice,
+} from "@/lib/types";
 import { MODE_DEFS } from "@/lib/types";
 import { DAYS_ORDERED, DAY_LABELS, TIME_BLOCK_DEFS } from "@/lib/time-model";
 import css from "./ground-signal.module.css";
@@ -13,197 +19,154 @@ interface ModeBarProps {
   mode: Mode;
   timeSlice: TimeSlice;
   flyerTimeContext: FlyerTimeContext;
-  layerVisibility: LayerVisibility;
-  analysisEnabled: boolean;
-  placementMode: boolean;
-  hasAreaCircle: boolean;
-  areaRadiusKm: number;
+  flyerPlannerInput: FlyerPlannerInput;
   onModeChange: (m: Mode) => void;
   onTimeSliceChange: (t: TimeSlice) => void;
   onFlyerTimeContextChange: (ctx: FlyerTimeContext) => void;
-  onToggleLayer: (layer: MapLayerKey) => void;
-  onToggleAnalysis: () => void;
-  onClearArea: () => void;
-  onSetAreaRadius: (radiusKm: number) => void;
+  onFlyerPlannerInputChange: (input: FlyerPlannerInput) => void;
 }
 
-const LAYER_TOGGLES: { id: MapLayerKey; label: string }[] = [
-  { id: "zones", label: "Zones" },
-  { id: "stations", label: "Transport" },
-  { id: "partners", label: "Partners" },
-  { id: "candidates", label: "Bike shops" },
-];
-const AREA_RADIUS_PRESETS = [0.5, 1, 1.5, 2];
-
-const WEEKEND_DAYS = new Set(["saturday", "sunday"]);
+const TEAM_SIZE_PRESETS = [1, 2, 3, 4, 5, 6];
+const SESSION_HOUR_PRESETS = [1, 2, 3];
 
 export default function ModeBar({
   mode,
   timeSlice,
   flyerTimeContext,
-  layerVisibility,
-  analysisEnabled,
-  placementMode,
-  hasAreaCircle,
-  areaRadiusKm,
+  flyerPlannerInput,
   onModeChange,
   onTimeSliceChange,
   onFlyerTimeContextChange,
-  onToggleLayer,
-  onToggleAnalysis,
-  onClearArea,
-  onSetAreaRadius,
+  onFlyerPlannerInputChange,
 }: ModeBarProps) {
-  const activeMode = MODE_DEFS.find((item) => item.id === mode) ?? MODE_DEFS[0];
   const isFlyerMode = mode === "flyer-distribution";
 
   return (
     <div className={css.modeBar}>
-      <span className={css.brand}>Ground Signal</span>
+      <div className={css.brandBlock}>
+        <Image
+          alt="Betteride logo"
+          className={css.brandLogo}
+          height={28}
+          src="/betteride-circle-logo.svg"
+          width={28}
+        />
+        <span className={css.brand}>Betteride</span>
+      </div>
+
+      <div className={css.toolbarDivider} />
 
       <div className={css.modeTabs}>
         {MODE_DEFS.map((m) => (
           <button
             key={m.id}
             className={`${css.modeTab} ${mode === m.id ? css.modeTabActive : ""}`}
-            style={
-              mode === m.id
-                ? { background: m.accent, borderColor: m.accent }
-                : undefined
-            }
             onClick={() => onModeChange(m.id)}
+            style={mode === m.id ? { background: m.accent, borderColor: m.accent } : undefined}
+            title={m.label}
+            type="button"
           >
-            {m.label}
+            {m.short}
           </button>
         ))}
       </div>
 
-      {/* Standard time slice buttons — hidden in flyer mode */}
-      {!isFlyerMode && (
-        <div className={css.timeTabs}>
-          {TIME_SLICES.map((t) => (
-            <button
-              key={t.id}
-              className={`${css.timeTab} ${timeSlice === t.id ? css.timeTabActive : ""}`}
-              onClick={() => onTimeSliceChange(t.id)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className={css.toolbarDivider} />
 
-      {/* Flyer mode: day-of-week + time-block pickers */}
-      {isFlyerMode && (
+      {!isFlyerMode ? (
+        <label className={css.toolbarSection}>
+          <span className={css.toolbarLabel}>Window</span>
+          <select
+            className={css.toolbarSelect}
+            onChange={(event) => onTimeSliceChange(event.target.value as TimeSlice)}
+            value={timeSlice}
+          >
+            {TIME_SLICES.map((slice) => (
+              <option key={slice.id} value={slice.id}>
+                {slice.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
         <>
-          <div className={css.timeTabs}>
-            {DAYS_ORDERED.map((day) => {
-              const isWeekendDay = WEEKEND_DAYS.has(day);
-              const isActive = flyerTimeContext.day === day;
-              return (
-                <button
-                  key={day}
-                  className={`${css.timeTab} ${isActive ? css.timeTabActive : ""}`}
-                  style={
-                    isActive
-                      ? { background: activeMode.accent, borderColor: activeMode.accent }
-                      : isWeekendDay
-                        ? { opacity: 0.75 }
-                        : undefined
-                  }
-                  onClick={() => onFlyerTimeContextChange({ ...flyerTimeContext, day })}
-                  type="button"
-                >
+          <label className={css.toolbarSection}>
+            <span className={css.toolbarLabel}>Day</span>
+            <select
+              className={css.toolbarSelect}
+              onChange={(event) =>
+                onFlyerTimeContextChange({
+                  ...flyerTimeContext,
+                  day: event.target.value as FlyerTimeContext["day"],
+                })}
+              value={flyerTimeContext.day}
+            >
+              {DAYS_ORDERED.map((day) => (
+                <option key={day} value={day}>
                   {DAY_LABELS[day]}
-                </button>
-              );
-            })}
-          </div>
+                </option>
+              ))}
+            </select>
+          </label>
 
-          <div className={css.timeTabs}>
-            {TIME_BLOCK_DEFS.map((tb) => {
-              const isActive = flyerTimeContext.timeBlock === tb.id;
-              return (
-                <button
-                  key={tb.id}
-                  className={`${css.timeTab} ${isActive ? css.timeTabActive : ""}`}
-                  style={
-                    isActive
-                      ? { background: activeMode.accent, borderColor: activeMode.accent }
-                      : undefined
-                  }
-                  onClick={() => onFlyerTimeContextChange({ ...flyerTimeContext, timeBlock: tb.id })}
-                  type="button"
-                >
-                  {tb.shortLabel}
-                </button>
-              );
-            })}
-          </div>
+          <label className={css.toolbarSection}>
+            <span className={css.toolbarLabel}>Block</span>
+            <select
+              className={css.toolbarSelect}
+              onChange={(event) =>
+                onFlyerTimeContextChange({
+                  ...flyerTimeContext,
+                  timeBlock: event.target.value as FlyerTimeContext["timeBlock"],
+                })}
+              value={flyerTimeContext.timeBlock}
+            >
+              {TIME_BLOCK_DEFS.map((timeBlock) => (
+                <option key={timeBlock.id} value={timeBlock.id}>
+                  {timeBlock.shortLabel}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={css.toolbarSection}>
+            <span className={css.toolbarLabel}>Team</span>
+            <select
+              className={css.toolbarSelect}
+              onChange={(event) =>
+                onFlyerPlannerInputChange({
+                  ...flyerPlannerInput,
+                  teamSize: Number(event.target.value),
+                })}
+              value={String(flyerPlannerInput.teamSize)}
+            >
+              {TEAM_SIZE_PRESETS.map((teamSize) => (
+                <option key={teamSize} value={teamSize}>
+                  {teamSize} rep{teamSize === 1 ? "" : "s"}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={css.toolbarSection}>
+            <span className={css.toolbarLabel}>Length</span>
+            <select
+              className={css.toolbarSelect}
+              onChange={(event) =>
+                onFlyerPlannerInputChange({
+                  ...flyerPlannerInput,
+                  sessionHours: Number(event.target.value),
+                })}
+              value={String(flyerPlannerInput.sessionHours)}
+            >
+              {SESSION_HOUR_PRESETS.map((sessionHours) => (
+                <option key={sessionHours} value={sessionHours}>
+                  {sessionHours}h
+                </option>
+              ))}
+            </select>
+          </label>
         </>
       )}
-
-      <div className={css.layerToggles}>
-        {LAYER_TOGGLES.map((layer) => (
-          <button
-            key={layer.id}
-            className={`${css.layerToggle} ${layerVisibility[layer.id] ? css.layerToggleActive : ""}`}
-            onClick={() => onToggleLayer(layer.id)}
-            type="button"
-          >
-            {layer.label}
-          </button>
-        ))}
-      </div>
-
-      {!isFlyerMode && (
-        <div className={css.areaControls}>
-          <button
-            className={`${css.areaControlButton} ${
-              analysisEnabled ? css.areaControlButtonActive : ""
-            }`}
-            onClick={onToggleAnalysis}
-            type="button"
-          >
-            {placementMode
-              ? "Click map to place"
-              : hasAreaCircle
-                ? "Place new area"
-                : "Analyze Area"}
-          </button>
-
-          {hasAreaCircle ? (
-            <button
-              className={css.areaControlGhost}
-              onClick={onClearArea}
-              type="button"
-            >
-              Clear Area
-            </button>
-          ) : null}
-        </div>
-      )}
-
-      {!isFlyerMode && hasAreaCircle ? (
-        <div className={css.areaRadiusChips}>
-          {AREA_RADIUS_PRESETS.map((radiusKm) => (
-            <button
-              key={radiusKm}
-              className={`${css.areaRadiusChip} ${
-                Math.abs(areaRadiusKm - radiusKm) < 0.001 ? css.areaRadiusChipActive : ""
-              }`}
-              onClick={() => onSetAreaRadius(radiusKm)}
-              type="button"
-            >
-              {radiusKm < 1 ? `${Math.round(radiusKm * 1000)} m` : `${radiusKm} km`}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      <div className={css.modeDescription}>
-        <strong>{activeMode.label}:</strong> {activeMode.description}
-      </div>
     </div>
   );
 }

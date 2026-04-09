@@ -117,6 +117,33 @@ export function getTimeMultiplier(ctx: FlyerTimeContext): number {
   return dayMult * timeMult;
 }
 
+/**
+ * Within-bucket relative multiplier — differentiates time blocks that map
+ * to the same TimeSlice (e.g. morning-peak vs afternoon-peak both map to
+ * "weekday-peak"). The sparse estimator already picks the right counter
+ * bucket, so we only need the relative variation within that bucket.
+ *
+ * Computed as: timeBlockMultiplier / average(all blocks in same bucket).
+ */
+export function getWithinBucketMultiplier(ctx: FlyerTimeContext): number {
+  const weekend = isWeekend(ctx.day);
+  const timeSlice = flyerContextToTimeSlice(ctx);
+
+  // Gather all time blocks that map to the same time slice
+  const siblingMultipliers = TIME_BLOCK_DEFS
+    .filter((td) => {
+      const siblingCtx: FlyerTimeContext = { day: ctx.day, timeBlock: td.id };
+      return flyerContextToTimeSlice(siblingCtx) === timeSlice;
+    })
+    .map((td) => weekend ? td.weekendMultiplier : td.weekdayMultiplier);
+
+  const bucketAvg = siblingMultipliers.reduce((a, b) => a + b, 0) / siblingMultipliers.length;
+  const timeDef = TIME_BLOCK_DEFS.find((t) => t.id === ctx.timeBlock)!;
+  const myMult = weekend ? timeDef.weekendMultiplier : timeDef.weekdayMultiplier;
+
+  return bucketAvg > 0 ? myMult / bucketAvg : 1;
+}
+
 /** Human-readable label like "Friday · Afternoon 2–7pm" */
 export function formatFlyerTimeLabel(ctx: FlyerTimeContext): string {
   const dayLabel = DAY_FULL_LABELS[ctx.day];

@@ -31,6 +31,11 @@ export interface FlyerTimeContext {
   timeBlock: TimeBlock;
 }
 
+export interface FlyerPlannerInput {
+  teamSize: number;
+  sessionHours: number;
+}
+
 export interface FlyerSpot {
   name: string;
   type: "br-stop" | "station-entrance" | "protected-lane" | "bike-street" | "shop-cluster";
@@ -53,6 +58,64 @@ export interface FlyerTimeWindow {
   cyclistsPerHour: number;
 }
 
+export interface DistrictSocioeconomic {
+  purchasingPowerIndex: number;
+  unemploymentRate: number;
+  carFreeHouseholdsShare: number;
+  renterHouseholdsShare: number;
+}
+
+export interface DistrictContext {
+  districtId: string | null;
+  districtName: string | null;
+  populationDensity: number | null;
+  cyclingModalShare: number | null;
+  bikeTheftDensity: number | null;
+  repairDemandScore: number | null;
+  socioeconomic: DistrictSocioeconomic | null;
+}
+
+export interface WeatherAdjustment {
+  source: "open-meteo" | "fallback";
+  targetTimeIso: string;
+  multiplier: number;
+  summary: string;
+  temperatureC: number | null;
+  apparentTemperatureC: number | null;
+  precipitationProbability: number | null;
+  precipitationMm: number | null;
+  windSpeedKph: number | null;
+  weatherCode: number | null;
+}
+
+export interface TransitDisruptionAdjustment {
+  stationId: string;
+  stationName: string;
+  score: number;
+  boostMultiplier: number;
+  delayedDepartures: number;
+  cancelledDepartures: number;
+  averageDelayMinutes: number;
+  remarkCount: number;
+  summary: string;
+}
+
+export interface FlyerConditions {
+  targetTimeIso: string;
+  weather: WeatherAdjustment | null;
+  stationDisruptions: Record<string, TransitDisruptionAdjustment>;
+  weatherStatus: "ready" | "fallback";
+  transitStatus: "ready" | "partial" | "fallback";
+}
+
+export interface FlyerFactorBreakdown {
+  weatherMultiplier: number;
+  transitDisruptionBoost: number;
+  repairDemandScore: number;
+  bikeTheftDensity: number;
+  topTransitDisruption: TransitDisruptionAdjustment | null;
+}
+
 export interface FlyerZoneScore {
   zone: Zone;
   flyerScore: number;
@@ -63,12 +126,44 @@ export interface FlyerZoneScore {
   infraScore: number;
   audienceFitScore: number;
   affinityScore: number;
+  allSpots: FlyerSpot[];
   topSpots: FlyerSpot[];
   bestWindows: FlyerTimeWindow[];
   headline: string;
   recommendation: string;
   teamAdvice: string;
+  districtContext: DistrictContext;
+  factorBreakdown: FlyerFactorBreakdown;
 }
+
+export interface FlyerPlanAssignment {
+  personIndex: number;
+  status: "assigned" | "holdback";
+  zoneId: string | null;
+  zoneName: string | null;
+  spot: FlyerSpot | null;
+  expectedProspects: number;
+  expectedProspectsPerHour: number;
+  expectedFlyers: number;
+  assignmentScore: number;
+  stackFactor: number;
+  zoneRepeatPenalty: number;
+  spacingPenalty: number;
+  rationale: string;
+}
+
+export interface FlyerPlan {
+  input: FlyerPlannerInput;
+  assignedCount: number;
+  holdbackCount: number;
+  totalExpectedProspects: number;
+  totalExpectedFlyers: number;
+  uniqueZoneCount: number;
+  uniqueSpotCount: number;
+  summary: string;
+  assignments: FlyerPlanAssignment[];
+}
+
 export type ShopTag = "candidate" | "partner_osm" | "partner_manual";
 export type MapLayerKey = "zones" | "stations" | "partners" | "candidates";
 export type LayerVisibility = Record<MapLayerKey, boolean>;
@@ -145,17 +240,25 @@ export interface AreaAnalysisSummary {
   backgroundEstimate: number;
   networkPriorEstimate: number;
   urbanActivityEstimate: number;
+  enrichmentEstimate: number;
   estimateConfidence: AreaEstimateConfidence;
   shopCount: number;
   partnerCount: number;
   candidateCount: number;
   stationCount: number;
   counterCount: number;
+  universityCount: number;
+  bikeSharingCount: number;
+  officeAreaCount: number;
   insideShops: NearbyShop[];
   insidePartners: NearbyShop[];
   insideCandidates: NearbyShop[];
   insideStations: NearbyStation[];
   insideCounters: NearbyCounter[];
+  audienceSegment: string | null;
+  audienceDetail: string | null;
+  flyerTone: string | null;
+  districtContext: DistrictContext | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,6 +287,8 @@ export interface ZoneScore {
   supply: number;
   gap: number;
   opportunity: number;
+  repairDemandProxy: number;
+  districtContext: DistrictContext;
   // Intelligence card content
   headline: string;
   signals: string[];
@@ -218,39 +323,39 @@ export const MODE_DEFS: ModeDefinition[] = [
     id: "coverage-gap",
     label: "Coverage Gap",
     short: "Gap",
-    accent: "#dd7846",
+    accent: "#6c3cc1",
     description: "Highlights zones with strong cycling demand and weak Betteride repair coverage.",
   },
   {
     id: "partner-acquisition",
     label: "Partner Acquisition",
     short: "Partners",
-    accent: "#2d8c74",
+    accent: "#7c3aed",
     description: "Ranks areas where independent bike shops are the best onboarding targets.",
   },
   {
     id: "mobile-repair",
     label: "Mobile Repair",
     short: "Mobile",
-    accent: "#d18a2f",
+    accent: "#b7791f",
     description: "Finds places where pickup, van repair, or pop-up service beats fixed shop coverage.",
   },
   {
     id: "commuter-reliability",
     label: "Commuter Reliability",
     short: "Commuter",
-    accent: "#4d7ecf",
+    accent: "#a14efd",
     description: "Focuses on station-led commuter corridors that need dependable same-day repair.",
   },
   {
     id: "flyer-distribution",
     label: "Flyer Distribution",
     short: "Flyers",
-    accent: "#16a34a",
+    accent: "#8b5cf6",
     description: "Finds the best zones, times, and exact spots to hand out flyers to the most receptive cyclists.",
   },
 ];
 
 export function getModeAccent(mode: Mode): string {
-  return MODE_DEFS.find((m) => m.id === mode)?.accent ?? "#dd7846";
+  return MODE_DEFS.find((m) => m.id === mode)?.accent ?? "#6c3cc1";
 }

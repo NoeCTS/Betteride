@@ -63,6 +63,15 @@
     "url": "https://unternehmen.vbb.de/der-vbb/zahlen-daten-fakten/vbb-kennzahlen/fahrgaeste/"
   },
   {
+    "id": "berlin-enrichment",
+    "name": "Berlin area enrichment (POIs, population, audience segments)",
+    "provider": "OpenStreetMap / Statistik Berlin-Brandenburg / SrV 2018",
+    "refreshDate": "2026-03-26",
+    "confidence": "medium",
+    "note": "Universities, bike sharing stations, office/coworking hubs, district population density, cycling modal share, and audience segmentation. Used as fallback estimator for zones with sparse or zero bike counter data. Refresh via scripts/fetch-berlin-enrichment.ts (Overpass API) or update berlin-enrichment.json manually.",
+    "url": "https://overpass-api.de/"
+  },
+  {
     "id": "betteride-seed-layers",
     "name": "Betteride prototype seed layers",
     "provider": "Local prototype bundle",

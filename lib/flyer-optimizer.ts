@@ -5,8 +5,18 @@
 /* ------------------------------------------------------------------ */
 
 import rawLayers from "@/data/raw/berlin-layers.json";
+import {
+  computeTransitBoost,
+  getSpotWeatherMultiplier,
+} from "@/lib/flyer-conditions";
 import { estimateSparseCyclistVolume } from "@/lib/area-analysis";
-import { clamp, influenceWithinRadius, normalizeToHundred, round } from "@/lib/geo";
+import {
+  describeDistrictContext,
+  enrichLocation,
+  estimateFallbackCyclistVolume,
+  type AreaEnrichment,
+} from "@/lib/berlin-enrichment";
+import { clamp, distanceKm, influenceWithinRadius, normalizeToHundred, round } from "@/lib/geo";
 import {
   corridorWeight,
   distanceKmToPolyline,
@@ -21,11 +31,12 @@ import {
   TIME_BLOCK_DEFS,
   formatFlyerTimeShort,
   flyerContextToTimeSlice,
-  getTimeMultiplier,
+  getWithinBucketMultiplier,
   isWeekend,
 } from "@/lib/time-model";
 import type {
   AppData,
+  FlyerConditions,
   FlyerSpot,
   FlyerTimeContext,
   FlyerTimeWindow,
@@ -33,7 +44,6 @@ import type {
   NearbyShop,
   Zone,
 } from "@/lib/types";
-import { distanceKm } from "@/lib/geo";
 
 // ---------------------------------------------------------------------------
 // Layer data
@@ -92,7 +102,16 @@ const SESSION_HOURS = 2;
 // Main scorer
 // ---------------------------------------------------------------------------
 
-export function scoreFlyerZones(data: AppData, ctx: FlyerTimeContext): FlyerZoneScore[] {
+export function scoreFlyerZones(
+  data: AppData,
+  ctx: FlyerTimeContext,
+  conditions: FlyerConditions | null = null,
+): FlyerZoneScore[] {
+  // Pre-compute enrichment data for each zone (cached for reuse across terms)
+  const zoneEnrichments = data.zones.map((zone) =>
+    enrichLocation({ lat: zone.lat, lon: zone.lon }, zone.radius),
+  );
+
   // Step 1: compute raw terms per zone
   const rawCyclist: number[] = [];
   const rawDwell: number[] = [];
@@ -101,14 +120,16 @@ export function scoreFlyerZones(data: AppData, ctx: FlyerTimeContext): FlyerZone
   const rawAffinity: number[] = [];
   const rawProspects: number[] = [];
 
-  for (const zone of data.zones) {
-    const cyclist = computeCyclistVolumeTerm(zone, ctx, data);
+  for (let i = 0; i < data.zones.length; i++) {
+    const zone = data.zones[i];
+    const ze = zoneEnrichments[i];
+    const cyclist = computeCyclistVolumeTerm(zone, ctx, data, ze, conditions);
     rawCyclist.push(cyclist);
     rawDwell.push(computeDwellTerm(zone, ctx));
     rawInfra.push(computeInfraTerm(zone));
-    rawAudience.push(computeAudienceFitTerm(zone));
+    rawAudience.push(computeAudienceFitTerm(zone, ze));
     rawAffinity.push(computeAffinityTerm(zone));
-    rawProspects.push(computeRawProspects(zone, cyclist));
+    rawProspects.push(computeRawProspects(zone, cyclist, ze));
   }
 
   // Step 2: normalize each term 0–100
@@ -135,12 +156,22 @@ export function scoreFlyerZones(data: AppData, ctx: FlyerTimeContext): FlyerZone
       0, 100,
     ));
 
+    const ze = zoneEnrichments[i];
     const estimatedCyclistsPerHour = Math.max(0, Math.round(rawCyclist[i] * 0.85));
     const prospectsPerHour = Math.max(0, Math.round(rawProspects[i]));
-
-    const topSpots = buildFlyerSpots(zone, ctx);
+    const allSpots = buildFlyerSpots(zone, ctx, conditions, ze);
+    const topSpots = allSpots.slice(0, 3);
     const bestWindows = computeBestWindows(zone, data);
-    const intel = buildFlyerIntel(zone, flyerScore, estimatedCyclistsPerHour, prospectsPerHour, ctx, topSpots);
+    const transitBoost = computeTransitBoost(zone.nearbyStations, conditions?.stationDisruptions);
+    const intel = buildFlyerIntel(
+      zone,
+      estimatedCyclistsPerHour,
+      prospectsPerHour,
+      ctx,
+      topSpots,
+      ze,
+      conditions,
+    );
 
     return {
       zone,
@@ -152,11 +183,20 @@ export function scoreFlyerZones(data: AppData, ctx: FlyerTimeContext): FlyerZone
       infraScore,
       audienceFitScore,
       affinityScore,
+      allSpots,
       topSpots,
       bestWindows,
       headline: intel.headline,
       recommendation: intel.recommendation,
       teamAdvice: intel.teamAdvice,
+      districtContext: ze.districtContext,
+      factorBreakdown: {
+        weatherMultiplier: conditions?.weather?.multiplier ?? 1,
+        transitDisruptionBoost: transitBoost.boostMultiplier,
+        repairDemandScore: ze.repairDemandScore,
+        bikeTheftDensity: ze.bikeTheftDensity,
+        topTransitDisruption: transitBoost.topDisruption,
+      },
     };
   });
 
@@ -170,7 +210,13 @@ export function scoreFlyerZones(data: AppData, ctx: FlyerTimeContext): FlyerZone
 // adjusted for day × time
 // ---------------------------------------------------------------------------
 
-function computeCyclistVolumeTerm(zone: Zone, ctx: FlyerTimeContext, data: AppData): number {
+function computeCyclistVolumeTerm(
+  zone: Zone,
+  ctx: FlyerTimeContext,
+  data: AppData,
+  zoneEnrichment?: AreaEnrichment,
+  conditions?: FlyerConditions | null,
+): number {
   const center = { lat: zone.lat, lon: zone.lon };
   const radiusKm = zone.radius;
   const timeSlice = flyerContextToTimeSlice(ctx);
@@ -185,18 +231,42 @@ function computeCyclistVolumeTerm(zone: Zone, ctx: FlyerTimeContext, data: AppDa
     insideShopCount,
   );
 
+  // If local sensor coverage is weak, blend in enrichment-based fallback
+  let baseEstimate = blendedEstimate.value;
+  if (zoneEnrichment && blendedEstimate.localSensorEstimate.coverageCount === 0) {
+    const fallback = estimateFallbackCyclistVolume(
+      center,
+      radiusKm,
+      timeSlice,
+      insideStations,
+      zoneEnrichment,
+    );
+    if (fallback.value > baseEstimate) {
+      baseEstimate = Math.round(0.40 * baseEstimate + 0.60 * fallback.value);
+    }
+  }
+
   // The blended estimate already reflects peak/offpeak/weekend via timeSlice selection.
-  // Only apply the day-of-week multiplier (new info not in the 3-bucket time slice).
-  return blendedEstimate.value * DAY_MULTIPLIERS[ctx.day];
+  // Apply day-of-week multiplier (new info) + within-bucket relative multiplier
+  // (differentiates e.g. morning vs afternoon within "weekday-peak" bucket).
+  const weatherMultiplier = conditions?.weather?.multiplier ?? 1;
+  const transitBoost = computeTransitBoost(zone.nearbyStations, conditions?.stationDisruptions);
+
+  return baseEstimate
+    * DAY_MULTIPLIERS[ctx.day]
+    * getWithinBucketMultiplier(ctx)
+    * weatherMultiplier
+    * transitBoost.boostMultiplier;
 }
 
 // ---------------------------------------------------------------------------
 // Raw prospects per hour (before normalization — used for absolute numbers)
 // ---------------------------------------------------------------------------
 
-function computeRawProspects(zone: Zone, cyclistVolume: number): number {
+function computeRawProspects(zone: Zone, cyclistVolume: number, ze?: AreaEnrichment): number {
   const cyclistsPerHour = cyclistVolume * 0.85;
-  const audienceFit = computeRawAudienceFit(zone);
+  const audienceFit = computeRawAudienceFit(zone, ze);
+  const repairDemandMultiplier = ze?.repairDemandMultiplier ?? 1;
 
   // Weighted average interaction quality from top spots
   const center = { lat: zone.lat, lon: zone.lon };
@@ -212,7 +282,7 @@ function computeRawProspects(zone: Zone, cyclistVolume: number): number {
     intQuality = Math.max(intQuality, STATION_INTERACTION[topStation.item.type] ?? 0.22);
   }
 
-  return cyclistsPerHour * intQuality * audienceFit;
+  return cyclistsPerHour * intQuality * audienceFit * repairDemandMultiplier;
 }
 
 // ---------------------------------------------------------------------------
@@ -271,11 +341,11 @@ function computeInfraTerm(zone: Zone): number {
 // Commuter routes = daily cyclists with high repair need
 // ---------------------------------------------------------------------------
 
-function computeAudienceFitTerm(zone: Zone): number {
-  return computeRawAudienceFit(zone) * 100;
+function computeAudienceFitTerm(zone: Zone, ze?: AreaEnrichment): number {
+  return computeRawAudienceFit(zone, ze) * 100;
 }
 
-function computeRawAudienceFit(zone: Zone): number {
+function computeRawAudienceFit(zone: Zone, ze?: AreaEnrichment): number {
   const center = { lat: zone.lat, lon: zone.lon };
   const radiusKm = zone.radius;
 
@@ -295,7 +365,14 @@ function computeRawAudienceFit(zone: Zone): number {
   const fitMultiplier = 0.60 + 0.35 * avgCommuter;
   // repair-shop culture boost
   const shopBoost = Math.min(0.15, zone.shopCount * 0.015);
-  return clamp(fitMultiplier + shopBoost, 0, 1);
+
+  // Enrichment-based receptivity boost: audience segment determines receptivity
+  const receptivityMult = ze?.audienceProfile.receptivityMultiplier ?? 1.0;
+  const repairNeedBoost = ze
+    ? 0.9 + Math.max(0, ze.repairDemandScore - 50) / 250
+    : 1;
+
+  return clamp((fitMultiplier + shopBoost) * receptivityMult * repairNeedBoost, 0, 1);
 }
 
 // ---------------------------------------------------------------------------
@@ -316,7 +393,12 @@ function computeAffinityTerm(zone: Zone): number {
 // Spot-level recommendations
 // ---------------------------------------------------------------------------
 
-function buildFlyerSpots(zone: Zone, ctx: FlyerTimeContext): FlyerSpot[] {
+function buildFlyerSpots(
+  zone: Zone,
+  ctx: FlyerTimeContext,
+  conditions?: FlyerConditions | null,
+  ze?: AreaEnrichment,
+): FlyerSpot[] {
   const spots: FlyerSpot[] = [];
   const center = { lat: zone.lat, lon: zone.lon };
   const radiusKm = zone.radius;
@@ -324,14 +406,21 @@ function buildFlyerSpots(zone: Zone, ctx: FlyerTimeContext): FlyerSpot[] {
   const dayMult = DAY_MULTIPLIERS[ctx.day];
   const timeDef = TIME_BLOCK_DEFS.find((t) => t.id === ctx.timeBlock)!;
   const timeMult = isWeekend(ctx.day) ? timeDef.weekendMultiplier : timeDef.weekdayMultiplier;
-  const audienceFit = computeRawAudienceFit(zone);
+  const audienceFit = computeRawAudienceFit(zone, ze);
+  const weatherMultiplier = conditions?.weather?.multiplier ?? 1;
+  const zoneTransitBoost = computeTransitBoost(zone.nearbyStations, conditions?.stationDisruptions);
 
   // 1. Station entrances
   for (const ns of zone.nearbyStations.slice(0, 3)) {
     if (ns.distanceKm > 1.2) continue;
     const bikeShare = STATION_BIKE_SHARE[ns.item.type] ?? 0.14;
     const stationDemand = ns.item.type === "S+U" ? 350 : ns.item.type === "S" ? 220 : 150;
-    const cyclistsPerHour = Math.round(stationDemand * bikeShare * dayMult * timeMult);
+    const stationTransitBoost = conditions?.stationDisruptions?.[ns.item.id]?.boostMultiplier
+      ?? zoneTransitBoost.boostMultiplier;
+    const spotWeatherMultiplier = getSpotWeatherMultiplier("station-entrance", conditions?.weather);
+    const cyclistsPerHour = Math.round(
+      stationDemand * bikeShare * dayMult * timeMult * weatherMultiplier * stationTransitBoost * spotWeatherMultiplier,
+    );
     const iq = STATION_INTERACTION[ns.item.type] ?? 0.22;
     const effectiveContacts = round(cyclistsPerHour * iq, 0);
     const prospects = round(effectiveContacts * audienceFit, 0);
@@ -355,7 +444,16 @@ function buildFlyerSpots(zone: Zone, ctx: FlyerTimeContext): FlyerSpot[] {
     const dist = distanceKm(center, loc);
     if (dist > radiusKm + 0.8) continue;
     const timeMultiplier = getLayerMultiplier(loc, timeSlice);
-    const cyclistsPerHour = Math.round((loc.capacity / 80) * timeMultiplier * dayMult * 200); // capacity × occupancy × base flow
+    const spotWeatherMultiplier = getSpotWeatherMultiplier("br-stop", conditions?.weather);
+    const cyclistsPerHour = Math.round(
+      (loc.capacity / 80)
+      * timeMultiplier
+      * dayMult
+      * 200
+      * weatherMultiplier
+      * zoneTransitBoost.boostMultiplier
+      * spotWeatherMultiplier,
+    ); // capacity × occupancy × base flow
     const iq = INTERACTION_QUALITY["br-stop"];
     const effectiveContacts = round(cyclistsPerHour * iq, 0);
     const prospects = round(effectiveContacts * audienceFit, 0);
@@ -383,7 +481,8 @@ function buildFlyerSpots(zone: Zone, ctx: FlyerTimeContext): FlyerSpot[] {
     // Use midpoint of segment as spot location
     const midIdx = Math.floor(seg.coordinates.length / 2);
     const [lon, lat] = seg.coordinates[midIdx];
-    const cyclistsPerHour = Math.round(400 * dayMult * timeMult); // baseline corridor flow
+    const spotWeatherMultiplier = getSpotWeatherMultiplier("protected-lane", conditions?.weather);
+    const cyclistsPerHour = Math.round(400 * dayMult * timeMult * weatherMultiplier * spotWeatherMultiplier); // baseline corridor flow
     const iq = INTERACTION_QUALITY["protected-lane"];
     const effectiveContacts = round(cyclistsPerHour * iq, 0);
     const prospects = round(effectiveContacts * audienceFit, 0);
@@ -407,7 +506,8 @@ function buildFlyerSpots(zone: Zone, ctx: FlyerTimeContext): FlyerSpot[] {
   // 4. Shop clusters — areas with ≥3 shops within 300m
   const shopClusters = findShopClusters(zone.nearbyShops, 0.3, 3);
   for (const cluster of shopClusters.slice(0, 1)) {
-    const cyclistsPerHour = Math.round(cluster.count * 80 * dayMult * timeMult);
+    const spotWeatherMultiplier = getSpotWeatherMultiplier("shop-cluster", conditions?.weather);
+    const cyclistsPerHour = Math.round(cluster.count * 80 * dayMult * timeMult * weatherMultiplier * spotWeatherMultiplier);
     const iq = INTERACTION_QUALITY["shop-cluster"];
     const effectiveContacts = round(cyclistsPerHour * iq, 0);
     // Shops = repair mindset → boost audience fit
@@ -428,9 +528,9 @@ function buildFlyerSpots(zone: Zone, ctx: FlyerTimeContext): FlyerSpot[] {
     });
   }
 
-  // Sort by prospectsPerHour descending, return top 3
+  // Sort by prospectsPerHour descending; UI can slice if it only wants the top few.
   spots.sort((a, b) => b.prospectsPerHour - a.prospectsPerHour);
-  return spots.slice(0, 3);
+  return spots;
 }
 
 interface ShopCluster {
@@ -526,22 +626,30 @@ function computeBestWindows(zone: Zone, data: AppData): FlyerTimeWindow[] {
 
 function buildFlyerIntel(
   zone: Zone,
-  flyerScore: number,
   cyclistsPerHour: number,
   prospectsPerHour: number,
   ctx: FlyerTimeContext,
   topSpots: FlyerSpot[],
+  ze?: AreaEnrichment,
+  conditions?: FlyerConditions | null,
 ): { headline: string; recommendation: string; teamAdvice: string } {
   const timeDef = TIME_BLOCK_DEFS.find((t) => t.id === ctx.timeBlock)!;
   const timeLabel = timeDef.label.toLowerCase();
   const topSpot = topSpots[0];
   const topSpotName = topSpot?.name ?? zone.nearbyStations[0]?.item.name ?? zone.name;
+  const transitBoost = computeTransitBoost(zone.nearbyStations, conditions?.stationDisruptions);
 
   const teamSize = Math.max(1, Math.ceil(prospectsPerHour / FLYER_CAPACITY_PER_PERSON));
   const flyersPerHour = Math.round(prospectsPerHour * FLYER_TAKE_RATE);
   const totalFlyers = Math.round(flyersPerHour * SESSION_HOURS * 1.2);
 
-  const headline = `~${prospectsPerHour.toLocaleString()} prospects/hr · ${timeDef.shortLabel}`;
+  const weatherLabel = conditions?.weather
+    ? ` · weather ${Math.round((conditions.weather.multiplier - 1) * 100)}%`
+    : "";
+  const transitLabel = transitBoost.topDisruption && transitBoost.boostMultiplier > 1.01
+    ? ` · transit +${Math.round((transitBoost.boostMultiplier - 1) * 100)}%`
+    : "";
+  const headline = `~${prospectsPerHour.toLocaleString()} prospects/hr · ${timeDef.shortLabel}${weatherLabel}${transitLabel}`;
 
   const topSpotType = topSpot?.type ?? "station-entrance";
   const spotAdvice =
@@ -553,10 +661,28 @@ function buildFlyerIntel(
           ? `Best spot is the protected lane on ${topSpotName} — high cyclist concentration.`
           : `Best spot is the shop cluster near ${topSpotName} — cyclists already in bike mode.`;
 
+  // Add audience-aware context from enrichment
+  const audienceHint = ze?.audienceProfile
+    ? ` This is a ${ze.audienceProfile.primary} area${ze.audienceProfile.secondary ? ` (also ${ze.audienceProfile.secondary}s)` : ""}. Suggested tone: "${ze.audienceProfile.flyerTone}".`
+    : "";
+  const districtHint = ze?.districtContext.districtName
+    ? ` District signal: ${ze.districtContext.districtName} scores ${ze.repairDemandScore}/100 on repair demand (${describeDistrictContext(ze.districtContext)}).`
+    : "";
+  const weatherHint = conditions?.weather
+    ? ` Weather outlook: ${conditions.weather.summary}.`
+    : "";
+  const disruptionHint = transitBoost.topDisruption && transitBoost.topDisruption.score > 0
+    ? ` Transit stress near ${transitBoost.topDisruption.stationName}: ${transitBoost.topDisruption.summary}.`
+    : "";
+
   const recommendation = `Go to ${zone.name} on ${ctx.day.charAt(0).toUpperCase() + ctx.day.slice(1)} ${timeLabel}. `
     + `Expect ~${cyclistsPerHour.toLocaleString()} cyclists/hr through the zone. `
     + spotAdvice
-    + (topSpot ? ` ${topSpot.positioningHint}` : "");
+    + (topSpot ? ` ${topSpot.positioningHint}` : "")
+    + audienceHint
+    + districtHint
+    + weatherHint
+    + disruptionHint;
 
   const teamAdvice =
     teamSize === 1

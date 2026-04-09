@@ -2,6 +2,11 @@
 /*  Scoring engine + intelligence generation                           */
 /* ------------------------------------------------------------------ */
 
+import {
+  describeDistrictContext,
+  enrichLocation,
+  type AreaEnrichment,
+} from "@/lib/berlin-enrichment";
 import type { AppData, Mode, TimeSlice, Zone, ZoneScore, NearbyCounter } from "@/lib/types";
 import { clamp, influenceWithinRadius, normalizeToHundred, round } from "@/lib/geo";
 
@@ -35,6 +40,9 @@ export function scoreZones(
   timeSlice: TimeSlice,
 ): ZoneScore[] {
   const weights = MODE_WEIGHTS[mode];
+  const zoneEnrichments = data.zones.map((zone) =>
+    enrichLocation({ lat: zone.lat, lon: zone.lon }, zone.radius),
+  );
 
   // Step 1: compute raw demand / supply per zone
   const rawDemands: number[] = [];
@@ -43,8 +51,9 @@ export function scoreZones(
   const rawCandidates: number[] = [];
   const rawIsolation: number[] = [];
 
-  for (const zone of data.zones) {
-    rawDemands.push(computeDemand(zone, timeSlice));
+  for (let i = 0; i < data.zones.length; i++) {
+    const zone = data.zones[i];
+    rawDemands.push(computeDemand(zone, timeSlice, zoneEnrichments[i]));
     rawSupplies.push(computeSupply(zone));
     rawStationAdj.push(computeStationAdjacency(zone));
     rawCandidates.push(zone.candidateCount);
@@ -60,6 +69,7 @@ export function scoreZones(
 
   // Step 3: compute gap + opportunity per zone
   const scores: ZoneScore[] = data.zones.map((zone, i) => {
+    const enrichment = zoneEnrichments[i];
     const demand = round(normDemand[i]);
     const supply = round(normSupply[i]);
     const gap = round(clamp((demand - supply + 100) / 2, 0, 100));
@@ -75,7 +85,7 @@ export function scoreZones(
       0, 100,
     ));
 
-    const intel = generateIntel(zone, mode, demand, supply, gap, timeSlice);
+    const intel = generateIntel(zone, mode, demand, supply, gap, timeSlice, enrichment);
 
     return {
       zone,
@@ -83,6 +93,8 @@ export function scoreZones(
       supply,
       gap,
       opportunity,
+      repairDemandProxy: enrichment.repairDemandScore,
+      districtContext: enrichment.districtContext,
       ...intel,
     };
   });
@@ -103,7 +115,7 @@ function counterVolume(counter: NearbyCounter, timeSlice: TimeSlice): number {
   }
 }
 
-function computeDemand(zone: Zone, timeSlice: TimeSlice): number {
+function computeDemand(zone: Zone, timeSlice: TimeSlice, enrichment: AreaEnrichment): number {
   // Counter volume weighted by proximity (50%)
   let counterSignal = 0;
   for (const nc of zone.nearbyCounters) {
@@ -121,8 +133,16 @@ function computeDemand(zone: Zone, timeSlice: TimeSlice): number {
 
   // Shop density as demand proxy (20%)
   const shopSignal = zone.shopCount * 10;
+  const theftSignal = enrichment.bikeTheftDensity * 90;
+  const socioeconomicSignal = enrichment.repairDemandScore * 6;
 
-  return counterSignal * 0.5 + stationSignal * 0.3 + shopSignal * 0.2;
+  return (
+    counterSignal * 0.45 +
+    stationSignal * 0.25 +
+    shopSignal * 0.15 +
+    theftSignal * 0.10 +
+    socioeconomicSignal * 0.05
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -180,6 +200,7 @@ function generateIntel(
   supply: number,
   gap: number,
   timeSlice: TimeSlice,
+  enrichment: AreaEnrichment,
 ): { headline: string; signals: string[]; action: string; kpis: string[] } {
   const topStation = zone.nearbyStations[0]?.item.name ?? "this area";
   const dailyVolume = zone.nearbyCounters.reduce(
@@ -189,6 +210,9 @@ function generateIntel(
   const candidateCount = zone.candidateCount;
   const nearestPartnerMin = zone.nearbyShops.find((s) => s.item.isPartner)?.bikeMinutes;
   const timeLabel = timeSlice === "weekday-peak" ? "peak hours" : timeSlice === "weekend" ? "weekends" : "off-peak hours";
+  const districtSignal = enrichment.districtContext.districtName
+    ? `${enrichment.districtContext.districtName} repair proxy ${enrichment.repairDemandScore}/100 · ${describeDistrictContext(enrichment.districtContext)}`
+    : "District repair proxy unavailable";
 
   switch (mode) {
     case "coverage-gap":
@@ -200,6 +224,7 @@ function generateIntel(
           `${dailyVolume.toLocaleString()} cyclists/day pass through nearby counters`,
           `${zone.shopCount} repair shops exist but ${partnerCount === 0 ? "none are" : `only ${partnerCount} ${partnerCount === 1 ? "is" : "are"}`} Betteride partners`,
           `${zone.nearbyStations.length} S/U stations within cycling distance create commuter demand`,
+          districtSignal,
         ],
         action: candidateCount > 3
           ? `Recruit ${Math.min(candidateCount, 5)} candidate shops near ${topStation} to close the coverage gap, prioritizing those closest to station exits`
@@ -216,6 +241,7 @@ function generateIntel(
           demand > 60
             ? `Demand score is ${round(demand, 0)}/100 — well above average for Berlin`
             : `Moderate demand (${round(demand, 0)}/100) — focus on highest-volume candidates`,
+          districtSignal,
         ],
         action: `Onboard top ${Math.min(3, candidateCount)} candidates nearest to ${topStation}. Prioritize shops with street visibility and existing online presence.`,
         kpis: ["Partner sign-up rate", "Incremental bookings per new partner", "Coverage radius change", "Partner retention at 90 days"],
@@ -232,6 +258,7 @@ function generateIntel(
             : `Zero partner shops within the zone radius`,
           `${dailyVolume.toLocaleString()} daily cyclists with limited fast-repair access`,
           `${zone.nearbyStations.length} transit stations could serve as pickup/drop-off points`,
+          districtSignal,
         ],
         action: `Test pickup-and-return repair from ${topStation} during ${timeLabel}. Station bike parking areas are natural handoff points.`,
         kpis: ["Pickup requests per day", "Repair completion rate", "Avg turnaround time", "Customer satisfaction score", "Cost per repair vs shop average"],
@@ -246,6 +273,7 @@ function generateIntel(
           partnerCount > 0
             ? `${partnerCount} partner${partnerCount > 1 ? "s" : ""} serve this area but peak capacity may be insufficient`
             : `No Betteride partners — commuters have zero same-day booking option`,
+          districtSignal,
         ],
         action: partnerCount > 0
           ? `Ensure same-day repair capacity near ${topStation} during peak hours. Consider guaranteed turnaround SLA for commuter bookings.`
@@ -256,7 +284,7 @@ function generateIntel(
     case "flyer-distribution":
       return {
         headline: `Use Flyer Distribution mode for zone-specific marketing recommendations`,
-        signals: [`${dailyVolume.toLocaleString()} daily cyclists nearby`, `${zone.shopCount} repair shops in zone`],
+        signals: [`${dailyVolume.toLocaleString()} daily cyclists nearby`, `${zone.shopCount} repair shops in zone`, districtSignal],
         action: `Switch to Flyer Distribution mode to get day-by-day, spot-level flyer recommendations for this zone.`,
         kpis: ["Flyers distributed per session", "QR scan / redemption rate"],
       };

@@ -1,4 +1,8 @@
 import rawLayers from "@/data/raw/berlin-layers.json";
+import {
+  enrichLocation,
+  estimateFallbackCyclistVolume,
+} from "@/lib/berlin-enrichment";
 import { clampKmRadius, distanceKm, estimateBikeMinutes } from "@/lib/geo";
 import {
   corridorWeight,
@@ -141,29 +145,70 @@ export function summarizeAreaCircle(
     insideShops.length,
   );
 
+  // Enrich with POI, population, and audience data
+  const areaEnrichment = enrichLocation(center, radiusKm);
+  const fallback = estimateFallbackCyclistVolume(
+    center,
+    radiusKm,
+    timeSlice,
+    insideStations,
+    areaEnrichment,
+  );
+
+  // If sparse estimator has low local coverage, blend in the enrichment-based fallback.
+  // This handles areas with zero or very few bike counters.
+  const localCoverage = blendedEstimate.localSensorEstimate.coverageCount;
+  let finalEstimate = blendedEstimate.value;
+  if (localCoverage === 0 && blendedEstimate.value < fallback.value) {
+    // No local sensors at all → take the higher of sparse fallback vs enrichment
+    finalEstimate = Math.round(
+      0.40 * blendedEstimate.value + 0.60 * fallback.value,
+    );
+  } else if (localCoverage === 1 && blendedEstimate.backgroundEstimate.coverageCount < 3) {
+    // Weak coverage → mild enrichment blend
+    finalEstimate = Math.round(
+      0.70 * blendedEstimate.value + 0.30 * fallback.value,
+    );
+  }
+
+  const baseConfidence = getEstimateConfidence(
+    blendedEstimate.localSensorEstimate.coverageCount,
+    blendedEstimate.backgroundEstimate.coverageCount,
+    blendedEstimate.networkPriorEstimate.coverageCount,
+    blendedEstimate.urbanActivityEstimate.coverageCount,
+  );
+  // Enrichment can upgrade low confidence to medium if it has useful signals
+  const enrichmentUpgrade =
+    baseConfidence === "low" && fallback.confidence === "medium"
+      ? "medium" as const
+      : baseConfidence;
+
   return {
-    estimatedCyclistsThroughArea: blendedEstimate.value,
+    estimatedCyclistsThroughArea: finalEstimate,
     observedCounterVolume,
     localSensorEstimate: blendedEstimate.localSensorEstimate.value,
     backgroundEstimate: blendedEstimate.backgroundEstimate.value,
     networkPriorEstimate: blendedEstimate.networkPriorEstimate.value,
     urbanActivityEstimate: blendedEstimate.urbanActivityEstimate.value,
-    estimateConfidence: getEstimateConfidence(
-      blendedEstimate.localSensorEstimate.coverageCount,
-      blendedEstimate.backgroundEstimate.coverageCount,
-      blendedEstimate.networkPriorEstimate.coverageCount,
-      blendedEstimate.urbanActivityEstimate.coverageCount,
-    ),
+    enrichmentEstimate: fallback.value,
+    estimateConfidence: enrichmentUpgrade,
     shopCount: insideShops.length,
     partnerCount: insidePartners.length,
     candidateCount: insideCandidates.length,
     stationCount: insideStations.length,
     counterCount: insideCounters.length,
+    universityCount: areaEnrichment.nearbyUniversities.length,
+    bikeSharingCount: areaEnrichment.nearbyBikeSharing.length,
+    officeAreaCount: areaEnrichment.nearbyOfficeAreas.length,
     insideShops,
     insidePartners,
     insideCandidates,
     insideStations,
     insideCounters,
+    audienceSegment: areaEnrichment.audienceProfile.primary,
+    audienceDetail: areaEnrichment.audienceProfile.detail,
+    flyerTone: areaEnrichment.audienceProfile.flyerTone,
+    districtContext: areaEnrichment.districtContext,
   };
 }
 
@@ -215,6 +260,39 @@ export function buildAreaActionSteps(
       title: "Commuter move",
       detail:
         "This circle behaves like a commuter corridor. Prioritize same-day repair and pickup convenience.",
+    });
+  }
+
+  // Enrichment-based action steps
+  if (summary.audienceSegment === "student" && summary.universityCount > 0) {
+    actions.push({
+      title: "Campus flyer push",
+      detail:
+        "This area is near a university campus. Target bike racks at lecture buildings during morning arrivals and lunch breaks for highest take rate.",
+    });
+  }
+
+  if (summary.audienceSegment === "office-worker" && summary.officeAreaCount > 0) {
+    actions.push({
+      title: "Office commuter activation",
+      detail:
+        "Business district with office commuters cycling in. Position at building entrances during morning peak (8–10am) and evening departure (5–7pm).",
+    });
+  }
+
+  if (summary.bikeSharingCount > 0 && summary.counterCount === 0) {
+    actions.push({
+      title: "Bike sharing proxy signal",
+      detail:
+        "No bike counters here, but bike sharing stations indicate cycling activity. Use dock availability patterns to validate estimated volume.",
+    });
+  }
+
+  if ((summary.districtContext?.repairDemandScore ?? 0) >= 70) {
+    actions.push({
+      title: "High repair-demand district",
+      detail:
+        "District priors point to above-average repair propensity here. Lean into fast-fix, theft recovery, and same-week turnaround messaging.",
     });
   }
 
