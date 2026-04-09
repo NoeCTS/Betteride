@@ -1,4 +1,4 @@
-import rawLayers from "@/data/raw/berlin-layers.json";
+import rawLayers from "@/data/app/berlin-layers.json";
 import {
   enrichLocation,
   estimateFallbackCyclistVolume,

@@ -1,0 +1,120 @@
+{
+  "generated": "2026-03-26T00:00:00Z",
+  "source": "OpenStreetMap + Statistik Berlin-Brandenburg + SrV 2018 Mobilität in Städten",
+  "universities": [
+    { "id": "uni-hu-mitte", "name": "Humboldt-Universität (Mitte)", "lat": 52.5186, "lon": 13.3936, "enrollment": 33000, "type": "university" },
+    { "id": "uni-hu-adlershof", "name": "Humboldt-Universität (Adlershof)", "lat": 52.4308, "lon": 13.5305, "enrollment": 8000, "type": "university" },
+    { "id": "uni-fu-dahlem", "name": "Freie Universität Berlin", "lat": 52.4535, "lon": 13.2904, "enrollment": 33000, "type": "university" },
+    { "id": "uni-tu-charlottenburg", "name": "Technische Universität Berlin", "lat": 52.5125, "lon": 13.3269, "enrollment": 34000, "type": "university" },
+    { "id": "uni-udk", "name": "Universität der Künste Berlin", "lat": 52.5074, "lon": 13.3275, "enrollment": 4000, "type": "university" },
+    { "id": "uni-beuth-htw", "name": "Berliner Hochschule für Technik", "lat": 52.5445, "lon": 13.3521, "enrollment": 13000, "type": "university" },
+    { "id": "uni-htw-schoeneweide", "name": "HTW Berlin (Schöneweide)", "lat": 52.4570, "lon": 13.5247, "enrollment": 14000, "type": "university" },
+    { "id": "uni-htw-treskowallee", "name": "HTW Berlin (Treskowallee)", "lat": 52.4933, "lon": 13.5264, "enrollment": 14000, "type": "university" },
+    { "id": "uni-alice-salomon", "name": "Alice Salomon Hochschule", "lat": 52.5442, "lon": 13.6090, "enrollment": 4000, "type": "university" },
+    { "id": "uni-charite-mitte", "name": "Charité Campus Mitte", "lat": 52.5255, "lon": 13.3785, "enrollment": 9000, "type": "university" },
+    { "id": "uni-charite-virchow", "name": "Charité Campus Virchow", "lat": 52.5418, "lon": 13.3435, "enrollment": 5000, "type": "university" },
+    { "id": "uni-charite-benjamin", "name": "Charité Campus Benjamin Franklin", "lat": 52.4420, "lon": 13.3207, "enrollment": 4000, "type": "university" },
+    { "id": "uni-esmt", "name": "ESMT Berlin", "lat": 52.5142, "lon": 13.4033, "enrollment": 1500, "type": "college" },
+    { "id": "uni-hertie-school", "name": "Hertie School", "lat": 52.5105, "lon": 13.3896, "enrollment": 700, "type": "college" },
+    { "id": "uni-code-university", "name": "CODE University", "lat": 52.5032, "lon": 13.4455, "enrollment": 700, "type": "college" },
+    { "id": "uni-weissensee", "name": "Kunsthochschule Weißensee", "lat": 52.5557, "lon": 13.4590, "enrollment": 900, "type": "college" },
+    { "id": "uni-hwr", "name": "HWR Berlin (Schöneberg)", "lat": 52.4869, "lon": 13.3529, "enrollment": 12000, "type": "university" },
+    { "id": "uni-ash", "name": "Evangelische Hochschule Berlin", "lat": 52.4598, "lon": 13.3160, "enrollment": 1700, "type": "college" }
+  ],
+  "bikeSharing": [
+    { "id": "bs-nextbike-1", "name": "nextbike Alexanderplatz", "operator": "nextbike", "lat": 52.5219, "lon": 13.4132, "capacity": 30 },
+    { "id": "bs-nextbike-2", "name": "nextbike Potsdamer Platz", "operator": "nextbike", "lat": 52.5097, "lon": 13.3762, "capacity": 25 },
+    { "id": "bs-nextbike-3", "name": "nextbike Hauptbahnhof", "operator": "nextbike", "lat": 52.5251, "lon": 13.3695, "capacity": 30 },
+    { "id": "bs-nextbike-4", "name": "nextbike Warschauer Str", "operator": "nextbike", "lat": 52.5058, "lon": 13.4495, "capacity": 20 },
+    { "id": "bs-nextbike-5", "name": "nextbike Friedrichstraße", "operator": "nextbike", "lat": 52.5200, "lon": 13.3878, "capacity": 25 },
+    { "id": "bs-nextbike-6", "name": "nextbike Hackescher Markt", "operator": "nextbike", "lat": 52.5234, "lon": 13.4025, "capacity": 20 },
+    { "id": "bs-nextbike-7", "name": "nextbike Kottbusser Tor", "operator": "nextbike", "lat": 52.4994, "lon": 13.4178, "capacity": 15 },
+    { "id": "bs-nextbike-8", "name": "nextbike Ostkreuz", "operator": "nextbike", "lat": 52.5031, "lon": 13.4693, "capacity": 20 },
+    { "id": "bs-nextbike-9", "name": "nextbike Schönhauser Allee", "operator": "nextbike", "lat": 52.5490, "lon": 13.4140, "capacity": 15 },
+    { "id": "bs-nextbike-10", "name": "nextbike Gesundbrunnen", "operator": "nextbike", "lat": 52.5491, "lon": 13.3890, "capacity": 20 },
+    { "id": "bs-nextbike-11", "name": "nextbike Hermannplatz", "operator": "nextbike", "lat": 52.4867, "lon": 13.4247, "capacity": 20 },
+    { "id": "bs-nextbike-12", "name": "nextbike Görlitzer Park", "operator": "nextbike", "lat": 52.4983, "lon": 13.4366, "capacity": 15 },
+    { "id": "bs-nextbike-13", "name": "nextbike Prenzlauer Berg", "operator": "nextbike", "lat": 52.5380, "lon": 13.4234, "capacity": 15 },
+    { "id": "bs-nextbike-14", "name": "nextbike Südkreuz", "operator": "nextbike", "lat": 52.4752, "lon": 13.3660, "capacity": 20 },
+    { "id": "bs-nextbike-15", "name": "nextbike Zoo", "operator": "nextbike", "lat": 52.5072, "lon": 13.3323, "capacity": 25 },
+    { "id": "bs-nextbike-16", "name": "nextbike Mehringdamm", "operator": "nextbike", "lat": 52.4930, "lon": 13.3878, "capacity": 15 },
+    { "id": "bs-nextbike-17", "name": "nextbike Sonnenallee", "operator": "nextbike", "lat": 52.4790, "lon": 13.4312, "capacity": 15 },
+    { "id": "bs-nextbike-18", "name": "nextbike Neukölln S-Bhf", "operator": "nextbike", "lat": 52.4768, "lon": 13.4422, "capacity": 15 },
+    { "id": "bs-nextbike-19", "name": "nextbike Treptower Park", "operator": "nextbike", "lat": 52.4927, "lon": 13.4620, "capacity": 15 },
+    { "id": "bs-nextbike-20", "name": "nextbike Karl-Marx-Allee", "operator": "nextbike", "lat": 52.5182, "lon": 13.4345, "capacity": 15 }
+  ],
+  "officeAreas": [
+    { "id": "office-potsdamer-platz", "name": "Potsdamer Platz business hub", "lat": 52.5097, "lon": 13.3750, "type": "business-district", "employeeEstimate": 30000 },
+    { "id": "office-europacity", "name": "Europacity / Hauptbahnhof", "lat": 52.5280, "lon": 13.3680, "type": "business-district", "employeeEstimate": 15000 },
+    { "id": "office-mediaspree", "name": "Mediaspree / East Side", "lat": 52.5020, "lon": 13.4450, "type": "business-district", "employeeEstimate": 20000 },
+    { "id": "office-adlershof", "name": "Adlershof Science City", "lat": 52.4310, "lon": 13.5310, "type": "tech-park", "employeeEstimate": 25000 },
+    { "id": "office-factory-goerlitzer", "name": "Factory Berlin Görlitzer Park", "lat": 52.4990, "lon": 13.4370, "type": "coworking", "employeeEstimate": 1000 },
+    { "id": "office-factory-mitte", "name": "Factory Berlin Mitte", "lat": 52.5260, "lon": 13.3870, "type": "coworking", "employeeEstimate": 800 },
+    { "id": "office-betahaus", "name": "betahaus Kreuzberg", "lat": 52.5028, "lon": 13.4120, "type": "coworking", "employeeEstimate": 600 },
+    { "id": "office-wework-ku", "name": "WeWork Kurfürstendamm", "lat": 52.5014, "lon": 13.3295, "type": "coworking", "employeeEstimate": 500 },
+    { "id": "office-wework-sony", "name": "WeWork Sony Center", "lat": 52.5102, "lon": 13.3728, "type": "coworking", "employeeEstimate": 500 },
+    { "id": "office-siemensstadt", "name": "Siemensstadt", "lat": 52.5395, "lon": 13.2586, "type": "business-district", "employeeEstimate": 12000 },
+    { "id": "office-charlottenburg-city-west", "name": "City West / Ku'damm", "lat": 52.5030, "lon": 13.3300, "type": "business-district", "employeeEstimate": 18000 },
+    { "id": "office-mitte-regierungsviertel", "name": "Regierungsviertel", "lat": 52.5200, "lon": 13.3740, "type": "government", "employeeEstimate": 10000 }
+  ],
+  "districts": [
+    { "id": "mitte", "name": "Mitte", "lat": 52.5200, "lon": 13.4050, "population": 384172, "areaKm2": 39.47 },
+    { "id": "friedrichshain-kreuzberg", "name": "Friedrichshain-Kreuzberg", "lat": 52.5005, "lon": 13.4330, "population": 289991, "areaKm2": 20.16 },
+    { "id": "pankow", "name": "Pankow", "lat": 52.5700, "lon": 13.4130, "population": 413225, "areaKm2": 103.01 },
+    { "id": "charlottenburg-wilmersdorf", "name": "Charlottenburg-Wilmersdorf", "lat": 52.4960, "lon": 13.2840, "population": 342332, "areaKm2": 64.72 },
+    { "id": "spandau", "name": "Spandau", "lat": 52.5350, "lon": 13.1990, "population": 245527, "areaKm2": 91.91 },
+    { "id": "steglitz-zehlendorf", "name": "Steglitz-Zehlendorf", "lat": 52.4340, "lon": 13.2410, "population": 310071, "areaKm2": 102.50 },
+    { "id": "tempelhof-schoeneberg", "name": "Tempelhof-Schöneberg", "lat": 52.4660, "lon": 13.3830, "population": 351644, "areaKm2": 53.09 },
+    { "id": "neukoelln", "name": "Neukölln", "lat": 52.4410, "lon": 13.4490, "population": 329917, "areaKm2": 44.93 },
+    { "id": "treptow-koepenick", "name": "Treptow-Köpenick", "lat": 52.4430, "lon": 13.5740, "population": 275157, "areaKm2": 168.42 },
+    { "id": "marzahn-hellersdorf", "name": "Marzahn-Hellersdorf", "lat": 52.5410, "lon": 13.5760, "population": 269967, "areaKm2": 61.74 },
+    { "id": "lichtenberg", "name": "Lichtenberg", "lat": 52.5130, "lon": 13.5010, "population": 296470, "areaKm2": 52.29 },
+    { "id": "reinickendorf", "name": "Reinickendorf", "lat": 52.5880, "lon": 13.3330, "population": 265767, "areaKm2": 89.46 }
+  ],
+  "cyclingModalShare": {
+    "mitte": 0.18,
+    "friedrichshain-kreuzberg": 0.25,
+    "pankow": 0.22,
+    "charlottenburg-wilmersdorf": 0.15,
+    "spandau": 0.08,
+    "steglitz-zehlendorf": 0.13,
+    "tempelhof-schoeneberg": 0.14,
+    "neukoelln": 0.16,
+    "treptow-koepenick": 0.12,
+    "marzahn-hellersdorf": 0.07,
+    "lichtenberg": 0.10,
+    "reinickendorf": 0.09
+  },
+  "audienceSegments": {
+    "student": {
+      "description": "University students and young academics — high bike usage, budget-conscious, value convenience",
+      "flyerTone": "Affordable, fast, student-friendly repair",
+      "peakTimes": ["morning-peak", "midday"],
+      "receptivityMultiplier": 1.3
+    },
+    "commuter": {
+      "description": "Daily commuters using bike-to-transit — reliability-focused, time-sensitive",
+      "flyerTone": "Reliable same-day repair so your commute never stops",
+      "peakTimes": ["morning-peak", "afternoon-peak"],
+      "receptivityMultiplier": 1.1
+    },
+    "office-worker": {
+      "description": "Office workers cycling to business districts — mid-to-high income, value quality",
+      "flyerTone": "Premium repair service, pickup available at your office",
+      "peakTimes": ["morning-peak", "afternoon-peak"],
+      "receptivityMultiplier": 1.0
+    },
+    "leisure": {
+      "description": "Recreational cyclists in parks and green areas — weekend-heavy, diverse needs",
+      "flyerTone": "Keep your weekend rides smooth — quick tune-ups",
+      "peakTimes": ["midday", "afternoon-peak"],
+      "receptivityMultiplier": 0.7
+    },
+    "residential": {
+      "description": "General residents in high-density neighborhoods — varied usage, proximity matters",
+      "flyerTone": "Your neighborhood bike repair — fast and close",
+      "peakTimes": ["midday", "afternoon-peak"],
+      "receptivityMultiplier": 0.85
+    }
+  }
+}

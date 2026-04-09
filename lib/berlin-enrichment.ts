@@ -5,7 +5,7 @@
 /*  with zero or sparse bike counter data.                             */
 /* ------------------------------------------------------------------ */
 
-import rawEnrichment from "@/data/raw/berlin-enrichment.json";
+import rawEnrichment from "@/data/app/berlin-enrichment.json";
 import {
   BERLIN_DISTRICT_PROFILE_MAP,
 } from "@/lib/berlin-district-profiles";
