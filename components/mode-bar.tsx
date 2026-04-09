@@ -2,6 +2,8 @@ import Image from "next/image";
 import type {
   FlyerPlannerInput,
   FlyerTimeContext,
+  LayerVisibility,
+  MapLayerKey,
   Mode,
   TimeSlice,
 } from "@/lib/types";
@@ -15,15 +17,24 @@ const TIME_SLICES: { id: TimeSlice; label: string }[] = [
   { id: "weekend", label: "Weekend" },
 ];
 
+const LAYER_TOGGLES: { key: MapLayerKey; label: string }[] = [
+  { key: "zones", label: "Zones" },
+  { key: "stations", label: "Stations" },
+  { key: "partners", label: "Partners" },
+  { key: "candidates", label: "Candidates" },
+];
+
 interface ModeBarProps {
   mode: Mode;
   timeSlice: TimeSlice;
   flyerTimeContext: FlyerTimeContext;
   flyerPlannerInput: FlyerPlannerInput;
+  layerVisibility: LayerVisibility;
   onModeChange: (m: Mode) => void;
   onTimeSliceChange: (t: TimeSlice) => void;
   onFlyerTimeContextChange: (ctx: FlyerTimeContext) => void;
   onFlyerPlannerInputChange: (input: FlyerPlannerInput) => void;
+  onToggleLayer: (key: MapLayerKey) => void;
 }
 
 const TEAM_SIZE_PRESETS = [1, 2, 3, 4, 5, 6];
@@ -34,10 +45,12 @@ export default function ModeBar({
   timeSlice,
   flyerTimeContext,
   flyerPlannerInput,
+  layerVisibility,
   onModeChange,
   onTimeSliceChange,
   onFlyerTimeContextChange,
   onFlyerPlannerInputChange,
+  onToggleLayer,
 }: ModeBarProps) {
   const isFlyerMode = mode === "flyer-distribution";
 
@@ -167,6 +180,21 @@ export default function ModeBar({
           </label>
         </>
       )}
+
+      <div className={css.toolbarDivider} />
+
+      <div className={css.layerToggles}>
+        {LAYER_TOGGLES.map((layer) => (
+          <button
+            key={layer.key}
+            className={`${css.layerToggle} ${layerVisibility[layer.key] ? css.layerToggleActive : ""}`}
+            onClick={() => onToggleLayer(layer.key)}
+            type="button"
+          >
+            {layer.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

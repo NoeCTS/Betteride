@@ -134,6 +134,37 @@
   border-color: transparent;
 }
 
+.layerToggles {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.layerToggle {
+  padding: 6px 10px;
+  border: 1px solid rgba(108, 60, 193, 0.12);
+  border-radius: var(--radius-pill);
+  background: #fff;
+  font-family: var(--font-plex-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 120ms ease;
+  white-space: nowrap;
+}
+
+.layerToggle:hover {
+  background: rgba(108, 60, 193, 0.05);
+  color: var(--brand-purple);
+}
+
+.layerToggleActive {
+  background: rgba(108, 60, 193, 0.1);
+  border-color: rgba(108, 60, 193, 0.22);
+  color: var(--brand-purple);
+}
+
 .toolbarSelect {
   min-width: 104px;
   padding: 7px 28px 7px 10px;

@@ -10,6 +10,7 @@ import type {
   FlyerPlannerInput,
   FlyerTimeContext,
   LayerVisibility,
+  MapLayerKey,
   Mode,
   TimeSlice,
 } from "@/lib/types";
@@ -139,6 +140,10 @@ export default function GroundSignal() {
     return () => controller.abort();
   }, [flyerTimeContext.day, flyerTimeContext.timeBlock, mode]);
 
+  function handleToggleLayer(key: MapLayerKey) {
+    setLayerVisibility((current) => ({ ...current, [key]: !current[key] }));
+  }
+
   function handleModeChange(nextMode: Mode) {
     setMode(nextMode);
     setSelectedZoneId(null);
@@ -265,6 +270,8 @@ export default function GroundSignal() {
           onTimeSliceChange={setTimeSlice}
           onFlyerTimeContextChange={handleFlyerTimeContextChange}
           onFlyerPlannerInputChange={handleFlyerPlannerInputChange}
+          layerVisibility={layerVisibility}
+          onToggleLayer={handleToggleLayer}
         />
       ) : null}
       <div
