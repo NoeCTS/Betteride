@@ -7,6 +7,7 @@ import {
   CircleMarker,
   MapContainer,
   Marker,
+  Polyline,
   Rectangle,
   TileLayer,
   Tooltip,
@@ -177,6 +178,46 @@ export default function SignalMap({
     });
 
     return positions;
+  }, [plannerAssignments]);
+
+  // Compute walking route connecting all assigned spots using nearest-neighbor
+  const walkingRoute = useMemo<[number, number][]>(() => {
+    if (plannerAssignments.length < 2) return [];
+
+    // Get unique spot positions (dedupe spots shared by multiple reps)
+    const seen = new Set<string>();
+    const points: [number, number][] = [];
+    for (const a of plannerAssignments) {
+      const key = `${a.spot!.lat.toFixed(5)},${a.spot!.lon.toFixed(5)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        points.push([a.spot!.lat, a.spot!.lon]);
+      }
+    }
+
+    if (points.length < 2) return [];
+
+    // Nearest-neighbor ordering
+    const remaining = [...points];
+    const route: [number, number][] = [remaining.shift()!];
+    while (remaining.length > 0) {
+      const last = route[route.length - 1];
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const d = distanceKm(
+          { lat: last[0], lon: last[1] },
+          { lat: remaining[i][0], lon: remaining[i][1] },
+        );
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+      route.push(remaining.splice(bestIdx, 1)[0]);
+    }
+
+    return route;
   }, [plannerAssignments]);
 
   const centerHandleIcon = useMemo(
@@ -429,6 +470,20 @@ export default function SignalMap({
               weight: 1,
               dashArray: "6 4",
               opacity: 0.50,
+            }}
+          />
+        ) : null}
+
+        {isFlyerMode && walkingRoute.length >= 2 ? (
+          <Polyline
+            positions={walkingRoute}
+            pathOptions={{
+              color: "var(--brand-purple, #6c3cc1)",
+              weight: 3,
+              opacity: 0.6,
+              dashArray: "8 6",
+              lineCap: "round",
+              lineJoin: "round",
             }}
           />
         ) : null}
