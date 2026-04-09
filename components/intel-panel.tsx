@@ -582,8 +582,155 @@ function FlyerPlannerCard({
           </ol>
         </Section>
       ) : null}
+
+      <Section title="Session economics">
+        <SessionROICard flyerPlan={flyerPlan} flyerPlannerInput={flyerPlannerInput} />
+      </Section>
+
+      <button
+        className={css.exportButton}
+        onClick={() => exportFlyerPlanPDF(flyerPlan, flyerPlannerInput, flyerTimeContext)}
+        type="button"
+      >
+        Export briefing (PDF)
+      </button>
     </>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Session ROI Card
+// ---------------------------------------------------------------------------
+
+const HOURLY_REP_COST_EUR = 14;    // avg hourly cost per rep (wages + overhead)
+const FLYER_UNIT_COST_EUR = 0.04;  // print cost per flyer
+
+function SessionROICard({
+  flyerPlan,
+  flyerPlannerInput,
+}: {
+  flyerPlan: FlyerPlan;
+  flyerPlannerInput: FlyerPlannerInput;
+}) {
+  const activeReps = flyerPlan.assignedCount;
+  const hours = flyerPlannerInput.sessionHours;
+  const laborCost = activeReps * hours * HOURLY_REP_COST_EUR;
+  const flyerCost = flyerPlan.totalExpectedFlyers * FLYER_UNIT_COST_EUR;
+  const totalCost = laborCost + flyerCost;
+  const costPerProspect = flyerPlan.totalExpectedProspects > 0
+    ? totalCost / flyerPlan.totalExpectedProspects
+    : 0;
+  const costPerFlyer = flyerPlan.totalExpectedFlyers > 0
+    ? totalCost / flyerPlan.totalExpectedFlyers
+    : 0;
+  // Assume 3% conversion from prospect → lead
+  const estimatedLeads = Math.round(flyerPlan.totalExpectedProspects * 0.03);
+  const costPerLead = estimatedLeads > 0 ? totalCost / estimatedLeads : 0;
+
+  return (
+    <div className={css.roiCard}>
+      <div className={css.roiRow}>
+        <span>Team cost ({activeReps} reps × {hours}h × €{HOURLY_REP_COST_EUR})</span>
+        <strong>€{laborCost.toFixed(0)}</strong>
+      </div>
+      <div className={css.roiRow}>
+        <span>Print cost ({flyerPlan.totalExpectedFlyers} × €{FLYER_UNIT_COST_EUR})</span>
+        <strong>€{flyerCost.toFixed(1)}</strong>
+      </div>
+      <div className={`${css.roiRow} ${css.roiRowTotal}`}>
+        <span>Total session cost</span>
+        <strong>€{totalCost.toFixed(0)}</strong>
+      </div>
+      <div className={css.roiDivider} />
+      <div className={css.roiRow}>
+        <span>Cost per prospect</span>
+        <strong>€{costPerProspect.toFixed(2)}</strong>
+      </div>
+      <div className={css.roiRow}>
+        <span>Cost per flyer distributed</span>
+        <strong>€{costPerFlyer.toFixed(2)}</strong>
+      </div>
+      <div className={css.roiRow}>
+        <span>Est. leads (3% conversion)</span>
+        <strong>{estimatedLeads}</strong>
+      </div>
+      <div className={`${css.roiRow} ${css.roiRowHighlight}`}>
+        <span>Cost per lead</span>
+        <strong>€{costPerLead.toFixed(2)}</strong>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PDF Export
+// ---------------------------------------------------------------------------
+
+function exportFlyerPlanPDF(
+  plan: FlyerPlan,
+  input: FlyerPlannerInput,
+  ctx: FlyerTimeContext,
+) {
+  const assigned = plan.assignments.filter(
+    (a) => a.status === "assigned" && a.spot,
+  );
+  const laborCost = plan.assignedCount * input.sessionHours * HOURLY_REP_COST_EUR;
+  const flyerCost = plan.totalExpectedFlyers * FLYER_UNIT_COST_EUR;
+  const totalCost = laborCost + flyerCost;
+  const costPerProspect = plan.totalExpectedProspects > 0
+    ? (totalCost / plan.totalExpectedProspects).toFixed(2)
+    : "—";
+  const estimatedLeads = Math.round(plan.totalExpectedProspects * 0.03);
+  const costPerLead = estimatedLeads > 0 ? (totalCost / estimatedLeads).toFixed(2) : "—";
+  const dayLabel = ctx.day.charAt(0).toUpperCase() + ctx.day.slice(1);
+
+  const lines = [
+    "BETTERIDE — FLYER DEPLOYMENT BRIEFING",
+    "=".repeat(44),
+    "",
+    `Date:     ${new Date().toLocaleDateString("de-DE")}`,
+    `Window:   ${dayLabel} · ${ctx.timeBlock.replace("-", " ")}`,
+    `Team:     ${plan.input.teamSize} reps (${plan.assignedCount} active, ${plan.holdbackCount} holdback)`,
+    `Session:  ${input.sessionHours}h`,
+    "",
+    "ASSIGNMENTS",
+    "-".repeat(44),
+    "",
+    ...assigned.map(
+      (a) =>
+        `  Person ${a.personIndex}: ${a.spot!.name}\n` +
+        `    Zone: ${a.zoneName}\n` +
+        `    Prospects/hr: ~${a.expectedProspectsPerHour}  |  Flyers: ~${a.expectedFlyers}\n` +
+        `    Tip: ${a.spot!.positioningHint}\n`,
+    ),
+    "",
+    "SESSION ECONOMICS",
+    "-".repeat(44),
+    "",
+    `  Team cost:         €${laborCost.toFixed(0)}`,
+    `  Print cost:        €${flyerCost.toFixed(1)}`,
+    `  Total:             €${totalCost.toFixed(0)}`,
+    "",
+    `  Expected prospects: ${plan.totalExpectedProspects.toLocaleString()}`,
+    `  Expected flyers:    ${plan.totalExpectedFlyers.toLocaleString()}`,
+    `  Cost/prospect:      €${costPerProspect}`,
+    `  Est. leads (3%):    ${estimatedLeads}`,
+    `  Cost/lead:          €${costPerLead}`,
+    "",
+    "=".repeat(44),
+    "Generated by Betteride Ground Signal",
+  ];
+
+  const text = lines.join("\n");
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `betteride-briefing-${ctx.day}-${ctx.timeBlock}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function FlyerAreaIntelCard({
