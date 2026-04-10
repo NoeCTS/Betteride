@@ -750,6 +750,19 @@ export default function SignalMap({
 
       <div className={css.mapActions}>
         <button
+          className={`${css.mapActionButton} ${placementMode ? css.mapActionButtonActive : css.mapActionButtonAnalyze}`}
+          onClick={() => {
+            if (placementMode) {
+              onClearAreaCircle();
+            } else {
+              onSetAreaRadius(1);
+            }
+          }}
+          type="button"
+        >
+          {placementMode ? "Cancel" : "Analyze area"}
+        </button>
+        <button
           className={`${css.mapActionButton} ${detailsPanelOpen ? "" : css.mapActionButtonSupport}`}
           onClick={onToggleDetailsPanel}
           type="button"

@@ -381,6 +381,19 @@
   border-color: rgba(108, 60, 193, 0.2);
 }
 
+.mapActionButtonAnalyze {
+  background: linear-gradient(135deg, var(--brand-purple), var(--brand-lavender));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(108, 60, 193, 0.22);
+}
+
+.mapActionButtonActive {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+}
+
 .mapWrap :global(.leaflet-control-zoom) {
   border: 0 !important;
   border-radius: 18px !important;
