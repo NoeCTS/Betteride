@@ -1218,6 +1218,170 @@
   box-shadow: 0 12px 28px rgba(108, 60, 193, 0.24);
 }
 
+/* Session actions row */
+.sessionActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.saveSessionButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(22, 163, 74, 0.22);
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  color: #fff;
+  font-family: var(--font-plex-sans);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.18);
+  transition: all 120ms ease;
+}
+
+.saveSessionButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.24);
+}
+
+/* Campaign performance card */
+.campaignCard {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid rgba(108, 60, 193, 0.12);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top left, rgba(108, 60, 193, 0.06), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(22, 163, 74, 0.04), transparent 40%),
+    rgba(255, 255, 255, 0.96);
+  box-shadow: 0 6px 14px rgba(17, 24, 39, 0.03);
+  margin-bottom: 4px;
+}
+
+.campaignRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.campaignStat {
+  display: grid;
+  gap: 1px;
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.campaignStat strong {
+  font-family: var(--font-plex-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.campaignStat span {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.campaignHighlight {
+  color: var(--brand-purple) !important;
+}
+
+.campaignGreen {
+  color: #15803d !important;
+}
+
+/* Session history list */
+.sessionList {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sessionCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 4px 10px rgba(17, 24, 39, 0.02);
+}
+
+.sessionCardHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sessionCardTitle {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--foreground);
+  text-transform: capitalize;
+}
+
+.sessionCardDate {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.sessionDeleteBtn {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.06);
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 0 0 auto;
+  transition: all 120ms ease;
+}
+
+.sessionDeleteBtn:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.sessionCardStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.sessionCardStats span {
+  padding: 3px 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(108, 60, 193, 0.06);
+}
+
+.sessionCardZones {
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ------------------------------------------------------------------ */
 /* Map legend                                                          */
 /* ------------------------------------------------------------------ */

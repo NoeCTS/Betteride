@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 
 import type {
   AreaAnalysisCircle,
@@ -18,6 +18,15 @@ import { round } from "@/lib/geo";
 import { buildZoneInsights } from "@/lib/zone-insights";
 import { buildAreaActionSteps, getCounterMetricForTimeSlice, isPointInsideCircle } from "@/lib/area-analysis";
 import { formatFlyerTimeLabel } from "@/lib/time-model";
+import {
+  type CampaignStats,
+  type SavedSession,
+  clearAllSessions,
+  computeCampaignStats,
+  deleteSession,
+  loadSessions,
+  saveSession,
+} from "@/lib/session-store";
 import css from "./ground-signal.module.css";
 
 interface IntelPanelProps {
@@ -488,6 +497,32 @@ function FlyerPlannerCard({
     (assignment) => assignment.status === "assigned" && assignment.spot,
   );
 
+  const [sessions, setSessions] = useState<SavedSession[]>([]);
+  const [saveLabel, setSaveLabel] = useState("Save session");
+
+  useEffect(() => {
+    setSessions(loadSessions());
+  }, []);
+
+  const handleSave = useCallback(() => {
+    saveSession(flyerPlan, flyerPlannerInput, flyerTimeContext);
+    setSessions(loadSessions());
+    setSaveLabel("Saved!");
+    setTimeout(() => setSaveLabel("Save session"), 1500);
+  }, [flyerPlan, flyerPlannerInput, flyerTimeContext]);
+
+  const handleDelete = useCallback((id: string) => {
+    deleteSession(id);
+    setSessions(loadSessions());
+  }, []);
+
+  const handleClearAll = useCallback(() => {
+    clearAllSessions();
+    setSessions([]);
+  }, []);
+
+  const campaignStats = computeCampaignStats(sessions);
+
   return (
     <>
       <div className={css.sectionHeaderRow}>
@@ -587,13 +622,35 @@ function FlyerPlannerCard({
         <SessionROICard flyerPlan={flyerPlan} flyerPlannerInput={flyerPlannerInput} />
       </Section>
 
-      <button
-        className={css.exportButton}
-        onClick={() => exportFlyerPlanPDF(flyerPlan, flyerPlannerInput, flyerTimeContext)}
-        type="button"
-      >
-        Export briefing (PDF)
-      </button>
+      <div className={css.sessionActions}>
+        <button
+          className={css.exportButton}
+          onClick={() => exportFlyerPlanPDF(flyerPlan, flyerPlannerInput, flyerTimeContext)}
+          type="button"
+        >
+          Export briefing
+        </button>
+        <button
+          className={css.saveSessionButton}
+          onClick={handleSave}
+          type="button"
+        >
+          {saveLabel}
+        </button>
+      </div>
+
+      {sessions.length > 0 ? (
+        <>
+          <div className={css.intelDivider} style={{ margin: "16px 0" }} />
+          <CampaignPerformanceCard stats={campaignStats} />
+          <div className={css.intelDivider} style={{ margin: "16px 0" }} />
+          <SessionHistoryList
+            sessions={sessions}
+            onDelete={handleDelete}
+            onClearAll={handleClearAll}
+          />
+        </>
+      ) : null}
     </>
   );
 }
@@ -731,6 +788,142 @@ function exportFlyerPlanPDF(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
+// Campaign Performance Card — cumulative stats across all saved sessions
+// ---------------------------------------------------------------------------
+
+function CampaignPerformanceCard({ stats }: { stats: CampaignStats }) {
+  return (
+    <>
+      <div className={css.sectionLabel}>Campaign performance</div>
+      <div className={css.campaignCard}>
+        <div className={css.campaignRow}>
+          <div className={css.campaignStat}>
+            <strong>{stats.sessionCount}</strong>
+            <span>sessions</span>
+          </div>
+          <div className={css.campaignStat}>
+            <strong>{stats.totalRepHours}</strong>
+            <span>rep-hours</span>
+          </div>
+          <div className={css.campaignStat}>
+            <strong>{stats.zonesReached}</strong>
+            <span>zones</span>
+          </div>
+        </div>
+        <div className={css.campaignRow}>
+          <div className={css.campaignStat}>
+            <strong>{stats.totalProspects.toLocaleString()}</strong>
+            <span>prospects</span>
+          </div>
+          <div className={css.campaignStat}>
+            <strong>{stats.totalFlyers.toLocaleString()}</strong>
+            <span>flyers</span>
+          </div>
+          <div className={css.campaignStat}>
+            <strong>{stats.totalLeads}</strong>
+            <span>est. leads</span>
+          </div>
+        </div>
+        <div className={css.roiDivider} />
+        <div className={css.campaignRow}>
+          <div className={css.campaignStat}>
+            <strong className={css.campaignHighlight}>{"\u20AC"}{stats.totalCostEur.toFixed(0)}</strong>
+            <span>total spend</span>
+          </div>
+          <div className={css.campaignStat}>
+            <strong className={css.campaignHighlight}>{"\u20AC"}{stats.avgCostPerProspect.toFixed(2)}</strong>
+            <span>avg cost/prospect</span>
+          </div>
+          <div className={css.campaignStat}>
+            <strong className={css.campaignGreen}>{"\u20AC"}{stats.avgCostPerLead.toFixed(2)}</strong>
+            <span>avg cost/lead</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Session History List
+// ---------------------------------------------------------------------------
+
+function SessionHistoryList({
+  sessions,
+  onDelete,
+  onClearAll,
+}: {
+  sessions: SavedSession[];
+  onDelete: (id: string) => void;
+  onClearAll: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? sessions : sessions.slice(0, 3);
+
+  return (
+    <>
+      <div className={css.sectionHeaderRow}>
+        <div className={css.sectionLabel}>Session history ({sessions.length})</div>
+        {sessions.length > 0 ? (
+          <button className={css.sectionHeaderAction} onClick={onClearAll} type="button">
+            Clear all
+          </button>
+        ) : null}
+      </div>
+      <div className={css.sessionList}>
+        {visible.map((session) => {
+          const date = new Date(session.savedAt);
+          const dayLabel = session.flyerTimeContext.day.charAt(0).toUpperCase() + session.flyerTimeContext.day.slice(1);
+          const blockLabel = session.flyerTimeContext.timeBlock.replace("-", " ");
+
+          return (
+            <div key={session.id} className={css.sessionCard}>
+              <div className={css.sessionCardHeader}>
+                <div>
+                  <strong className={css.sessionCardTitle}>
+                    {dayLabel} {blockLabel}
+                  </strong>
+                  <span className={css.sessionCardDate}>
+                    {date.toLocaleDateString("de-DE")} {date.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+                <button
+                  className={css.sessionDeleteBtn}
+                  onClick={() => onDelete(session.id)}
+                  title="Remove session"
+                  type="button"
+                >
+                  {"\u00D7"}
+                </button>
+              </div>
+              <div className={css.sessionCardStats}>
+                <span>{session.assignedCount} reps</span>
+                <span>{session.totalExpectedProspects} prospects</span>
+                <span>{"\u20AC"}{session.totalCostEur.toFixed(0)}</span>
+                <span>{"\u20AC"}{session.costPerLead.toFixed(2)}/lead</span>
+              </div>
+              <div className={css.sessionCardZones}>
+                {session.topZoneNames.join(" · ")}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {sessions.length > 3 ? (
+        <button
+          className={css.sectionHeaderAction}
+          onClick={() => setExpanded((prev) => !prev)}
+          type="button"
+          style={{ marginTop: 8 }}
+        >
+          {expanded ? "Show less" : `Show all ${sessions.length}`}
+        </button>
+      ) : null}
+    </>
+  );
 }
 
 function FlyerAreaIntelCard({
