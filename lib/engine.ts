@@ -24,7 +24,6 @@ interface Weights {
 
 const MODE_WEIGHTS: Record<Mode, Weights> = {
   "coverage-gap":          { gap: 0.35, demand: 0.30, supplyInverse: 0.20, candidates: 0.00, stationAdj: 0.15, isolation: 0.00 },
-  "partner-acquisition":   { gap: 0.20, demand: 0.15, supplyInverse: 0.00, candidates: 0.45, stationAdj: 0.20, isolation: 0.00 },
   "mobile-repair":         { gap: 0.25, demand: 0.25, supplyInverse: 0.00, candidates: 0.00, stationAdj: 0.10, isolation: 0.40 },
   "commuter-reliability":  { gap: 0.20, demand: 0.15, supplyInverse: 0.15, candidates: 0.00, stationAdj: 0.40, isolation: 0.10 },
   // Flyer distribution uses its own scorer (flyer-optimizer.ts); these weights are a fallback only
@@ -230,21 +229,6 @@ function generateIntel(
           ? `Recruit ${Math.min(candidateCount, 5)} candidate shops near ${topStation} to close the coverage gap, prioritizing those closest to station exits`
           : `Launch mobile repair service targeting ${topStation} during ${timeLabel} — no nearby partner capacity to absorb demand`,
         kpis: ["Repair requests per zone", "Booking conversion rate", "Time to first available slot", "Missed demand (searches with no booking)"],
-      };
-
-    case "partner-acquisition":
-      return {
-        headline: `${candidateCount} independent shops near ${topStation} — strong onboarding opportunity`,
-        signals: [
-          `${candidateCount} non-partner repair shops within 1.5 km cycling radius`,
-          `${dailyVolume.toLocaleString()} daily cyclists generate steady repair demand`,
-          demand > 60
-            ? `Demand score is ${round(demand, 0)}/100 — well above average for Berlin`
-            : `Moderate demand (${round(demand, 0)}/100) — focus on highest-volume candidates`,
-          districtSignal,
-        ],
-        action: `Onboard top ${Math.min(3, candidateCount)} candidates nearest to ${topStation}. Prioritize shops with street visibility and existing online presence.`,
-        kpis: ["Partner sign-up rate", "Incremental bookings per new partner", "Coverage radius change", "Partner retention at 90 days"],
       };
 
     case "mobile-repair":

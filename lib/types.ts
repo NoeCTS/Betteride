@@ -5,7 +5,6 @@
 // Strategy modes
 export type Mode =
   | "coverage-gap"
-  | "partner-acquisition"
   | "mobile-repair"
   | "commuter-reliability"
   | "flyer-distribution";
@@ -326,14 +325,7 @@ export const MODE_DEFS: ModeDefinition[] = [
     accent: "#6c3cc1",
     description: "Highlights zones with strong cycling demand and weak Betteride repair coverage.",
   },
-  {
-    id: "partner-acquisition",
-    label: "Partner Acquisition",
-    short: "Partners",
-    accent: "#7c3aed",
-    description: "Ranks areas where independent bike shops are the best onboarding targets.",
-  },
-  {
+{
     id: "mobile-repair",
     label: "Mobile Repair",
     short: "Mobile",

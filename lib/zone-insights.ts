@@ -100,24 +100,6 @@ function buildActionSteps(
         },
       ];
 
-    case "partner-acquisition":
-      return [
-        {
-          title: "Build the outreach shortlist",
-          detail: topCandidate
-            ? `Start with ${topCandidate} and the next nearest candidate shops inside the zone.`
-            : "The candidate pool is thin here, so this zone is weaker for partner acquisition than its peers.",
-        },
-        {
-          title: "Anchor the pitch around the corridor",
-          detail: `${anchorStation} and the nearby counters give you the demand story to use in recruitment conversations.`,
-        },
-        {
-          title: "Measure partner conversion",
-          detail: "Track sign-up rate, first booking speed, and incremental coverage radius after onboarding.",
-        },
-      ];
-
     case "mobile-repair":
       return [
         {
